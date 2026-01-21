@@ -1,0 +1,359 @@
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  line-height: 1.5;
+  font-weight: 400;
+
+
+  color-scheme: dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #0d1117;
+  /* Darker, cleaner background */
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  --primary-color: #e94560;
+  --secondary-color: #16213e;
+  --accent-color: #0f3460;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: flex-start;
+  /* Align top */
+  min-width: 320px;
+  min-height: 100vh;
+  background: #0d1117;
+}
+
+#root {
+  width: 100%;
+}
+
+h1,
+h2,
+h3 {
+  color: #fff;
+}
+
+/* Modern Button Styles */
+/* Modern Button Styles */
+button {
+  border-radius: 8px;
+  border: none;
+  padding: 0.6em 1.2em;
+  font-size: 0.95em;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  letter-spacing: 0.3px;
+  /* Brighter Red Gradient */
+  background: linear-gradient(135deg, #fb7185 0%, #e11d48 100%);
+  color: white;
+  box-shadow: 0 4px 6px -1px rgba(225, 29, 72, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.05);
+}
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(225, 29, 72, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+/* Button Variants */
+.btn-primary {
+  /* Bright Blue */
+  background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%);
+  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+}
+
+.btn-primary:hover {
+  box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.4);
+}
+
+.btn-secondary {
+  background: #ffffff;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.btn-secondary:hover {
+  background: #f8fafc;
+  color: #1e293b;
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.btn-danger {
+  /* Soft Red */
+  background: linear-gradient(135deg, #f87171 0%, #dc2626 100%);
+  box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.3);
+}
+
+.btn-danger:hover {
+  box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.4);
+}
+
+.btn-success {
+  /* Soft Green */
+  background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+  box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);
+}
+
+.btn-success:hover {
+  box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.4);
+}
+
+.btn-icon {
+  padding: 0.5rem;
+  border-radius: 50%;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Tab Buttons */
+.tab-btn {
+  background: transparent;
+  color: #64748b;
+  box-shadow: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.tab-btn:hover {
+  background: #f1f5f9;
+  color: #334155;
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.tab-btn.active {
+  background: #fff1f2;
+  /* Light Rose */
+  color: #e11d48;
+  /* Primary Red/Rose */
+  border: 1px solid #fecdd3;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  font-weight: 600;
+}
+
+.login-container {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+input:not([type="checkbox"]):not([type="radio"]) {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 4px;
+  border: 1px solid #747775;
+  background: #ffffff;
+  color: #1f1f1f;
+  font-size: 1rem;
+  font-weight: 400;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):focus {
+  outline: none;
+  border-color: #0b57d0;
+  box-shadow: 0 0 0 1px #0b57d0;
+}
+
+.magazine-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2rem;
+  padding: 2rem 0;
+}
+
+.magazine-card {
+  background: rgba(22, 33, 62, 0.8);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.magazine-card:hover {
+  transform: translateY(-5px);
+  background: rgba(22, 33, 62, 1);
+}
+
+.auth-layout {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+/* Loader Animation */
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  border-top-color: var(--primary-color);
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* --- Google-like Login Styles --- */
+.google-auth-layout {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #f0f4f9;
+  /* Light Gray/Blueish */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.google-login-card {
+  background-color: #ffffff;
+  padding: 40px;
+  border-radius: 28px;
+  width: 100%;
+  max-width: 448px;
+  min-height: 500px;
+  /* Approximate */
+  display: flex;
+  flex-direction: column;
+  /* Just subtle outlines or very light shadow */
+  box-shadow: none;
+}
+
+/* On smaller screens, Google uses the full width or just centering. 
+   We will keep the card look as requested "professional like google page". 
+   Often Google's sign-in page is just a clean centered block on desktop. 
+*/
+@media (min-width: 600px) {
+  .google-login-card {
+    border: 1px solid #0000;
+    /* No border usually on the modern Material 3 one, just background */
+    /* Actually Google's modern one is two columns on large screens. 
+           Let's stick to the Classic/Standard centered card. */
+    background-color: #ffffff;
+    padding: 48px 40px 36px;
+    min-height: auto;
+  }
+}
+
+.google-logo-section {
+  margin-bottom: 24px;
+  text-align: left;
+  /* Changed to left? Google is usually left-aligned or centered depending on variation. Let's stick to Centered for standalone app. */
+  text-align: center;
+}
+
+.google-title {
+  font-family: 'Google Sans', 'Roboto', 'Arial', sans-serif;
+  font-size: 24px;
+  font-weight: 400;
+  color: #1f1f1f;
+  margin: 0 0 16px 0;
+  text-align: center;
+}
+
+.google-subtitle {
+  font-family: 'Roboto', 'Arial', sans-serif;
+  font-size: 16px;
+  color: #1f1f1f;
+  margin: 0 0 40px 0;
+  text-align: center;
+}
+
+.google-input-group {
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.google-input-field {
+  width: 100%;
+  padding: 13px 15px;
+  font-size: 16px;
+  border: 1px solid #747775;
+  border-radius: 4px;
+  color: #1f1f1f;
+  background-color: #ffffff;
+  box-sizing: border-box;
+}
+
+.google-input-field:focus {
+  border-color: #0b57d0;
+  outline: 2px solid #0b57d0;
+  /* Clean outline */
+  outline-offset: -1px;
+}
+
+.google-btn-primary {
+  background-color: #0b57d0;
+  color: #ffffff;
+  border-radius: 20px;
+  padding: 10px 24px;
+  font-family: 'Google Sans', 'Roboto', 'Arial', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  float: right;
+  /* Google buttons are often right-aligned in the actions row */
+  margin-top: 30px;
+  box-shadow: none;
+  /* Reset global button shadow */
+}
+
+.google-btn-primary:hover {
+  background-color: #0049c6;
+  /* Slightly darker */
+  box-shadow: 0 1px 2px rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
+}
+
+.google-btn-primary:disabled {
+  background-color: #e3e3e3;
+  color: #1f1f1f;
+  opacity: 0.38;
+}
+
+.google-footer-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}

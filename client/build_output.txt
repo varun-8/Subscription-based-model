@@ -1,0 +1,5 @@
+
+> client@0.0.0 build
+> tsc -b && vite build
+
+src/components/admin/CustomerFormModal.tsx(17,70): error TS6133: 'adTypes' is declared but its value is never read.

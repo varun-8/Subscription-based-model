@@ -1,0 +1,55 @@
+{
+    "name": "magazine-erp-desktop",
+    "version": "1.0.0",
+    "description": "Magazine ERP Desktop Application",
+    "author": "MagAdmin",
+    "main": "electron/main.js",
+    "scripts": {
+        "start": "electron .",
+        "build:client": "cd client && npm run build",
+        "dist": "npm run build:client && electron-builder",
+        "package:win": "npm run build:client && electron-packager . \"Aachi Vanthachu\" --platform=win32 --arch=x64 --out=dist-packager --overwrite --ignore=\"client/(src|public|node_modules)\" --ignore=\".git\" --ignore=\"dist\" --ignore=\"builder_cache\""
+    },
+    "devDependencies": {
+        "electron": "^33.2.1",
+        "electron-builder": "^25.1.8",
+        "electron-packager": "^17.1.2"
+    },
+    "dependencies": {
+        "tree-kill": "^1.2.2"
+    },
+    "build": {
+        "appId": "com.magazine.erp",
+        "productName": "Aachi Vanthachu",
+        "directories": {
+            "output": "dist"
+        },
+        "files": [
+            "electron/main.js",
+            "electron/preload.js",
+            "electron/splash.html",
+            "electron/logo.png",
+            "package.json"
+        ],
+        "extraResources": [
+            {
+                "from": "server",
+                "to": "server",
+                "filter": [
+                    "**/*"
+                ]
+            },
+            {
+                "from": "client/dist",
+                "to": "client/dist",
+                "filter": [
+                    "**/*"
+                ]
+            }
+        ],
+        "win": {
+            "target": "nsis",
+            "forceCodeSigning": false
+        }
+    }
+}

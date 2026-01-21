@@ -1,0 +1,402 @@
+/* QuickOrderView.css */
+
+.quick-order-container {
+    padding: 3rem 2rem;
+    min-height: 100vh;
+    background: #f1f5f9;
+    /* Slightly darker slate for better contrast with white cards */
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    color: #0f172a;
+}
+
+.quick-order-header {
+    margin-bottom: 3rem;
+    text-align: center;
+}
+
+.quick-order-title {
+    margin: 0 0 0.75rem 0;
+    font-size: 2.75rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #1e293b 0%, #475569 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.025em;
+}
+
+.quick-order-subtitle {
+    color: #64748b;
+    font-size: 1.15rem;
+    margin: 0;
+    font-weight: 500;
+}
+
+.quick-order-content {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+/* Stepper */
+.stepper-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3.5rem;
+    position: relative;
+    padding: 0 4rem;
+    max-width: 850px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.stepper-progress-bg {
+    position: absolute;
+    top: 20px;
+    left: 10%;
+    right: 10%;
+    height: 2px;
+    background: #e2e8f0;
+    z-index: 0;
+}
+
+.stepper-progress-fill {
+    height: 100%;
+    background: #4f46e5;
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stepper-item {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.875rem;
+    cursor: default;
+}
+
+.stepper-icon-box {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    font-size: 1.25rem;
+    transition: all 0.3s ease;
+    font-weight: 600;
+}
+
+.stepper-item.active .stepper-icon-box {
+    background: #4f46e5;
+    border-color: #4f46e5;
+    color: white;
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
+}
+
+.stepper-item.completed .stepper-icon-box {
+    background: #4f46e5;
+    border-color: #4f46e5;
+    color: white;
+}
+
+.stepper-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: color 0.3s;
+}
+
+.stepper-item.active .stepper-label,
+.stepper-item.completed .stepper-label {
+    color: #1e293b;
+}
+
+/* Card */
+.form-card {
+    background: white;
+    border-radius: 20px;
+    padding: 3.5rem;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f1f5f9;
+}
+
+/* Form Elements */
+.form-grid-3 {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.form-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.form-grid-address {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 1rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #334155;
+    margin-left: 0.1rem;
+}
+
+.form-input {
+    width: 100%;
+    padding: 0.875rem 1.125rem;
+    border-radius: 12px;
+    border: 1.5px solid #e2e8f0;
+    font-size: 0.95rem;
+    color: #1e293b;
+    background: #f8fafc;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    outline: none;
+    box-sizing: border-box;
+}
+
+.form-input:hover {
+    border-color: #cbd5e1;
+    background: #ffffff;
+}
+
+.form-input:focus {
+    background: #ffffff;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
+.form-input::placeholder {
+    color: #94a3b8;
+}
+
+/* Readonly input style */
+.form-input[readonly] {
+    background-color: #f1f5f9;
+    cursor: default;
+    border-color: #e2e8f0;
+}
+
+/* Select Specifics */
+select.form-input {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23475569'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem;
+    padding-right: 2.5rem;
+    cursor: pointer;
+}
+
+/* Radio Cards (Buttons/Tiles) */
+.radio-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.radio-card {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
+    border: 1.5px solid #e2e8f0;
+    cursor: pointer;
+    background: #f8fafc;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    min-width: 140px;
+    user-select: none;
+}
+
+.radio-card:hover {
+    border-color: #6366f1;
+    background: #ffffff;
+    transform: translateY(-1px);
+}
+
+.radio-card.selected {
+    border-color: #6366f1;
+    background: #eef2ff;
+    box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.1);
+}
+
+.radio-card input {
+    accent-color: #6366f1;
+    width: 1.125rem;
+    height: 1.125rem;
+    margin: 0;
+}
+
+.radio-card-label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+.radio-card.selected .radio-card-label {
+    color: #6366f1;
+}
+
+/* Buttons */
+.submit-btn {
+    width: 100%;
+    padding: 1rem;
+    background: #4f46e5;
+    /* Solid Indigo 600 */
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+    margin-top: 2rem;
+}
+
+.submit-btn:hover {
+    background: #4338ca;
+    /* Indigo 700 */
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.submit-btn:active {
+    transform: translateY(0);
+    background: #3730a3;
+}
+
+.submit-btn:disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Success View */
+.success-container {
+    text-align: center;
+    padding: 5rem 2rem;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.success-icon-wrapper {
+    width: 80px;
+    height: 80px;
+    background: #daf5e6;
+    /* Softer Green */
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #059669;
+    /* Emerald 600 */
+    margin: 0 auto 2rem;
+}
+
+.success-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 0.75rem;
+}
+
+.success-text {
+    font-size: 1rem;
+    color: #64748b;
+    margin-bottom: 2.5rem;
+    line-height: 1.6;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.btn-secondary {
+    padding: 0.875rem 2rem;
+    background: white;
+    color: #475569;
+    border-radius: 10px;
+    border: 1px solid #cbd5e1;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+    border-color: #94a3b8;
+    background: #f8fafc;
+    color: #1e293b;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.form-card {
+    animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .quick-order-container {
+        padding: 1.5rem 1rem;
+    }
+
+    .form-card {
+        padding: 2rem 1.5rem;
+    }
+
+    .form-grid-3,
+    .form-grid-2 {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
+
+    .stepper-container {
+        padding: 0 1rem;
+    }
+
+    .stepper-label {
+        display: none;
+        /* Hide labels on mobile for cleaner look unless critical */
+    }
+}
