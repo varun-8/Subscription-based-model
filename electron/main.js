@@ -1,10 +1,11 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
-const { fork } = require('child_process');
+const { fork, spawn } = require('child_process');
+const kill = require('tree-kill');
 const fs = require('fs');
 const os = require('os');
 const http = require('http');
-const https = require('https');
+const net = require('net');
 
 let mainWindow;
 let serverProcess;
@@ -12,6 +13,142 @@ let backupInterval;
 let lastBackupDate;
 let backupPath;
 let isMonitoringStarted = false;
+const MONGO_HOST = '127.0.0.1';
+const MONGO_PORT = 27017;
+const SERVER_PORT = Number(process.env.SERVER_PORT || process.env.PORT || 5055);
+
+function getWindowsLocalAppDataRoot() {
+    return process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
+}
+
+function getRuntimeRootDir() {
+    return path.join(getWindowsLocalAppDataRoot(), 'Aachi Vanthachu');
+}
+
+function ensureDir(dirPath) {
+    if (!fs.existsSync(dirPath)) {
+        fs.mkdirSync(dirPath, { recursive: true });
+    }
+
+    return dirPath;
+}
+
+function configureRuntimePaths() {
+    const runtimeRoot = ensureDir(getRuntimeRootDir());
+    const userDataPath = ensureDir(path.join(runtimeRoot, 'UserData'));
+    const sessionDataPath = ensureDir(path.join(runtimeRoot, 'SessionData'));
+
+    app.setPath('userData', userDataPath);
+    app.setPath('sessionData', sessionDataPath);
+
+    console.log(`Runtime root: ${runtimeRoot}`);
+    console.log(`Electron userData path: ${userDataPath}`);
+    console.log(`Electron sessionData path: ${sessionDataPath}`);
+}
+
+function getMongoDataDir() {
+    return ensureDir(path.join(app.getPath('userData'), 'mongodb-data'));
+}
+
+function getMongoLogPath() {
+    return path.join(app.getPath('userData'), 'logs', 'mongod.log');
+}
+
+function resolveExistingPath(candidates) {
+    for (const candidate of candidates) {
+        if (candidate && fs.existsSync(candidate)) {
+            return candidate;
+        }
+    }
+
+    return null;
+}
+
+function getServerEnv() {
+    return {
+        ...process.env,
+        PORT: String(SERVER_PORT),
+        NODE_ENV: app.isPackaged ? 'production' : (process.env.NODE_ENV || 'development'),
+        MONGODB_URI: process.env.MONGODB_URI || `mongodb://${MONGO_HOST}:${MONGO_PORT}/magazine_erp`,
+        JWT_SECRET: process.env.JWT_SECRET || '9f3c6f8c97e4a2d1b5f0e9c7a4b2d8f61c0e7a9b3f4d2e8c6a5b9d1f7e0c4a2',
+        ADMIN_ACTION_PASSWORD: process.env.ADMIN_ACTION_PASSWORD || 'AACHI@123',
+        DB_RESET_PASSWORD: process.env.DB_RESET_PASSWORD || 'AACHI@123'
+    };
+}
+
+function waitForTcpPort(host, port, timeoutMs = 15000, intervalMs = 300) {
+    return new Promise((resolve) => {
+        const deadline = Date.now() + timeoutMs;
+
+        const attempt = () => {
+            const socket = new net.Socket();
+            let settled = false;
+
+            const finish = (result) => {
+                if (settled) return;
+                settled = true;
+                socket.destroy();
+                resolve(result);
+            };
+
+            socket.setTimeout(1500);
+
+            socket.once('connect', () => finish(true));
+            socket.once('timeout', () => {
+                if (Date.now() >= deadline) {
+                    finish(false);
+                    return;
+                }
+                socket.destroy();
+                setTimeout(attempt, intervalMs);
+            });
+            socket.once('error', () => {
+                if (Date.now() >= deadline) {
+                    finish(false);
+                    return;
+                }
+                setTimeout(attempt, intervalMs);
+            });
+
+            socket.connect(port, host);
+        };
+
+        attempt();
+    });
+}
+
+function waitForServerHealth(timeoutMs = 30000, intervalMs = 500) {
+    return new Promise((resolve) => {
+        const deadline = Date.now() + timeoutMs;
+
+        const attempt = () => {
+            makeHttpRequest(`http://${MONGO_HOST}:${SERVER_PORT}/api/health`)
+                .then((data) => {
+                    if (data?.database === 'Connected') {
+                        resolve(true);
+                        return;
+                    }
+
+                    if (Date.now() >= deadline) {
+                        resolve(false);
+                        return;
+                    }
+
+                    setTimeout(attempt, intervalMs);
+                })
+                .catch(() => {
+                    if (Date.now() >= deadline) {
+                        resolve(false);
+                        return;
+                    }
+
+                    setTimeout(attempt, intervalMs);
+                });
+        };
+
+        attempt();
+    });
+}
 
 function createWindow() {
     // Create the splash window
@@ -53,8 +190,8 @@ function createWindow() {
     // Retry loading URL until server is ready
     const loadURL = () => {
         // In development, load from Vite dev server (5173) to get latest changes
-        // In production, load from the backend server which serves the static build (5000)
-        const targetUrl = !app.isPackaged ? 'http://localhost:5173' : 'http://localhost:5000';
+        // In production, load from the backend server which serves the static build
+        const targetUrl = !app.isPackaged ? 'http://127.0.0.1:5173' : `http://${MONGO_HOST}:${SERVER_PORT}`;
 
         console.log(`Loading URL: ${targetUrl}`);
 
@@ -213,7 +350,7 @@ async function performBackup() {
         console.log('Starting automatic backup...');
 
         // Call the auto-backup endpoint using Node.js http
-        const backupData = await makeHttpRequest('http://localhost:5000/api/admin/auto-backup', 'POST');
+        const backupData = await makeHttpRequest(`http://${MONGO_HOST}:${SERVER_PORT}/api/admin/auto-backup`, 'POST');
 
         // Create backup directory
         const targetBackupDir = backupPath || path.join(app.getPath('downloads'), 'Backups');
@@ -405,16 +542,17 @@ function makeHttpRequest(url, method = 'GET') {
 
 function startServer() {
     const isDev = !app.isPackaged;
-    // In production, check resources path first (electron-builder extraResources)
-    // Then fallback to relative path (electron-packager or asar bundle)
-    let serverScript = path.join(process.resourcesPath, 'server/index.js');
-    if (!fs.existsSync(serverScript)) {
-        serverScript = path.join(__dirname, '../server/index.js');
-    }
+    const serverScript = isDev
+        ? path.join(__dirname, '../server/index.js')
+        : resolveExistingPath([
+            path.join(process.resourcesPath, 'server/index.js'),
+            path.join(process.resourcesPath, 'app/server/index.js'),
+            path.join(__dirname, '../server/index.js')
+        ]);
 
-    // In dev, always use relative
-    if (isDev) {
-        serverScript = path.join(__dirname, '../server/index.js');
+    if (!serverScript) {
+        console.error('Server entrypoint not found in any expected packaged location.');
+        return;
     }
 
     const serverCwd = path.dirname(serverScript);
@@ -424,7 +562,7 @@ function startServer() {
     // Fork the server process
     serverProcess = fork(serverScript, [], {
         cwd: serverCwd,
-        env: { ...process.env, PORT: '5000' },
+        env: getServerEnv(),
         silent: false // let stdout flow to electron console
     });
 
@@ -433,9 +571,96 @@ function startServer() {
     });
 }
 
-app.on('ready', () => {
+function startMongoDBService() {
+    return new Promise((resolve) => {
+        console.log('Attempting to start MongoDB Windows Service...');
+
+        const { exec } = require('child_process');
+        
+        // Try to start the MongoDB service
+        exec('net start MongoDB', { windowsHide: true }, (error, stdout, stderr) => {
+            if (error) {
+                // Service might already be running or not installed
+                if (error.message.includes('already being provided')) {
+                    console.log('MongoDB service is already running.');
+                    resolve(true);
+                } else if (error.message.includes('service has not been started')) {
+                    // Service exists but wasn't running, try again
+                    console.log('MongoDB service was not running, starting now...');
+                    setTimeout(() => {
+                        exec('net start MongoDB', { windowsHide: true }, (retryError) => {
+                            if (retryError) {
+                                console.error('Failed to start MongoDB service:', retryError.message);
+                                resolve(false);
+                            } else {
+                                console.log('MongoDB service started successfully.');
+                                resolve(true);
+                            }
+                        });
+                    }, 500);
+                } else {
+                    console.warn('MongoDB service start warning:', error.message);
+                    console.log('Checking if MongoDB is already running...');
+                    resolve(false);
+                }
+            } else {
+                console.log('MongoDB service started successfully.');
+                resolve(true);
+            }
+        });
+    });
+}
+
+function startMongoDB() {
+    return new Promise((resolve) => {
+        console.log('Starting MongoDB initialization...');
+
+        // First, try to start the MongoDB Windows Service
+        startMongoDBService().then((serviceStarted) => {
+            console.log(`MongoDB service start attempt: ${serviceStarted ? 'Success' : 'Failed or already running'}`);
+
+            // Give service time to start if it was just launched
+            const delayMs = serviceStarted ? 3000 : 1000;
+            setTimeout(() => {
+                // Now check if MongoDB is accessible on port 27017
+                waitForTcpPort(MONGO_HOST, MONGO_PORT, 20000, 500)
+                    .then((portReady) => {
+                        if (portReady) {
+                            console.log('✓ MongoDB is ready to accept connections');
+                            resolve(true);
+                        } else {
+                            console.error('✗ MongoDB did not become ready within the timeout window');
+                            console.log('Info: Ensure MongoDB Windows Service is installed and running, or MongoDB Compass is connected');
+                            resolve(false);
+                        }
+                    });
+            }, delayMs);
+        });
+    });
+}
+
+app.on('ready', async () => {
+    configureRuntimePaths();
     loadBackupState();
+
+    const serverEnv = getServerEnv();
+    Object.assign(process.env, serverEnv);
+
+    // Start MongoDB first
+    console.log('Initializing Database...');
+    const mongoStarted = await startMongoDB();
+
+    if (mongoStarted) {
+        console.log('Database initialized successfully.');
+    } else {
+        console.warn('Database initialization warning. Checking connection...');
+    }
+
     startServer();
+    const backendReady = await waitForServerHealth(45000, 700);
+    if (!backendReady) {
+        console.warn('Backend did not report a healthy database connection before UI launch.');
+    }
     createWindow();
 
     // Start monitoring after a short delay
@@ -459,6 +684,8 @@ app.on('will-quit', () => {
     if (serverProcess) {
         serverProcess.kill();
     }
+    // MongoDB service is now managed by Windows, no process to kill
+    console.log('Application shutting down...');
 });
 
 // ========== LICENSE SYSTEM DISABLED ==========

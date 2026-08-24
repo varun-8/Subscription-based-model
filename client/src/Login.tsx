@@ -9,50 +9,68 @@ const Login = () => {
     const [loading, setLoading] = useState(false);
     const [showAdminCreation, setShowAdminCreation] = useState(false);
     const [adminActionPassword, setAdminActionPassword] = useState('');
+    const [activeModal, setActiveModal] = useState<'support' | 'privacy' | 'terms' | null>(null);
+    const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
 
+    const [dbStatus, setDbStatus] = useState<'Connecting' | 'Connected' | 'Disconnected'>('Connecting');
+
+    const checkAdminStatus = async () => {
+        try {
+            const res = await axios.get('/api/auth/admin-status');
+            const hasAdmin = Boolean(res.data?.hasAdmin);
+            setShowAdminCreation(!hasAdmin);
+            return hasAdmin;
+        } catch (err) {
+            setShowAdminCreation(false);
+            return false;
+        }
+    };
+
     useEffect(() => {
-        // Check if admin table is empty
-        const checkAdminStatus = async () => {
+        const checkHealth = async () => {
             try {
-                const res = await axios.get('/api/auth/admin-status');
-                setShowAdminCreation(!res.data.hasAdmin);
+                const res = await axios.get('/api/health');
+                if (res.data.database === 'Connected') {
+                    setDbStatus('Connected');
+                } else {
+                    setDbStatus('Connecting');
+                }
             } catch (err) {
-                // If error, assume admin exists to prevent showing admin creation form
-                setShowAdminCreation(false);
+                setDbStatus('Disconnected');
             }
         };
+
+        checkHealth();
         checkAdminStatus();
+        const healthInterval = setInterval(checkHealth, 5000);
+        return () => clearInterval(healthInterval);
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError(''); // Clear previous errors
+        setError('');
         setLoading(true);
         try {
             if (showAdminCreation) {
-                // Create admin account
                 const res = await axios.post('/api/auth/create-admin', {
                     username: username.trim(),
                     password,
                     providedActionPassword: adminActionPassword
                 }, { withCredentials: true });
                 if (res.status === 200) {
+                    await checkAdminStatus();
                     setError('');
-                    setShowAdminCreation(false);
                     setUsername('');
                     setPassword('');
                     setAdminActionPassword('');
-                    // Show success message
                     alert('Admin account created successfully! You can now login.');
                 }
             } else {
-                // Regular login
                 const res = await axios.post('/api/auth/login', { username: username.trim(), password }, { withCredentials: true });
                 if (res.status === 200) {
                     const role = res.data.role;
                     if (role === 'admin') {
-                        // Trigger automatic backup on admin login if in Electron
                         if (window.electronAPI && window.electronAPI.performBackup) {
                             window.electronAPI.performBackup();
                         }
@@ -66,7 +84,21 @@ const Login = () => {
             if (err.response) {
                 setError(err.response.data?.message || 'Invalid credentials');
             } else {
-                setError('Request failed. Please check server.');
+                setError('Connection failed. Server offline?');
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleGoToLogin = async () => {
+        setError('');
+        setLoading(true);
+
+        try {
+            const hasAdmin = await checkAdminStatus();
+            if (!hasAdmin) {
+                setError('No admin account exists yet. Create one first, then return to login.');
             }
         } finally {
             setLoading(false);
@@ -74,90 +106,182 @@ const Login = () => {
     };
 
     return (
-        <div className="google-auth-layout">
-            <div className="google-login-card">
-                <div className="google-logo-section">
-                    <img
-                        src="/invoice-logo.png"
-                        alt="Logo"
-                        style={{ height: '120px', marginBottom: '16px', objectFit: 'contain' }}
-                    />
-                    <h1 className="google-title">Sign in</h1>
-                    <p className="google-subtitle">Use your Aachi Account</p>
+        <div className="exe-login-container">
+            {/* Main Application Window */}
+            <div className="exe-login-window">
+
+                {/* Header Section */}
+                <div className="exe-login-header">
+                    <div className="exe-app-branding">
+                        <img src="/invoice-logo.png" alt="App Logo" className="exe-app-logo" />
+                        <div className="exe-app-info">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <h1 className="exe-app-title" style={{ margin: 0 }}>Magazine ERP</h1>
+                                <div
+                                    title={dbStatus === 'Connected' ? 'Database Connected' : 'Database Offline'}
+                                    style={{
+                                        display: 'flex', alignItems: 'center', gap: '5px',
+                                        background: dbStatus === 'Connected' ? '#f0fdf4' : '#fef2f2',
+                                        border: `1px solid ${dbStatus === 'Connected' ? '#bbf7d0' : '#fecaca'}`,
+                                        padding: '3px 8px', borderRadius: '12px',
+                                        fontSize: '0.65rem', fontWeight: 700,
+                                        color: dbStatus === 'Connected' ? '#16a34a' : '#dc2626',
+                                        letterSpacing: '0.02em',
+                                        boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+                                    }}
+                                >
+                                    <span style={{
+                                        width: '6px', height: '6px', borderRadius: '50%',
+                                        background: dbStatus === 'Connected' ? '#22c55e' : '#ef4444',
+                                        boxShadow: `0 0 6px ${dbStatus === 'Connected' ? '#22c55e' : '#ef4444'}`
+                                    }}></span>
+                                    {dbStatus === 'Connected' ? 'Connected' : 'Not Connected'}
+                                </div>
+                            </div>
+                            <span className="exe-app-version">Enterprise Edition v2.4</span>
+                        </div>
+                    </div>
                 </div>
 
-                {error && (
-                    <div style={{ color: '#d93025', fontSize: '14px', marginBottom: '20px', textAlign: 'left', display: 'flex', alignItems: 'center' }}>
-                        <span style={{ marginRight: '8px' }}>⚠️</span> {error}
-                    </div>
-                )}
+                {/* Login Body */}
+                <div className="exe-login-body">
+                    <h2 className="exe-section-title">
+                        {showAdminCreation ? 'System Initialization' : 'User Authentication'}
+                    </h2>
 
-                <form onSubmit={handleSubmit} style={{ width: '100%' }}>
-                    {showAdminCreation && (
-                        <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: '8px' }}>
-                            <p style={{ margin: '0 0 10px 0', color: '#856404', fontSize: '14px', fontWeight: '500' }}>
-                                🔐 Admin Setup Required
-                            </p>
-                            <p style={{ margin: '0', color: '#856404', fontSize: '13px' }}>
-                                No admin account found. Please create the first admin account.
-                            </p>
+                    {error && (
+                        <div className="exe-error-message">
+                            <span className="exe-error-icon">⚠️</span>
+                            {error}
                         </div>
                     )}
 
-                    <div className="google-input-group">
-                        <input
-                            type="text"
-                            className="google-input-field"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            placeholder={showAdminCreation ? "Choose Admin Username" : "Username"}
-                            required
-                            autoFocus
-                        />
-                    </div>
-                    <div className="google-input-group">
-                        <input
-                            type="password"
-                            className="google-input-field"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder={showAdminCreation ? "Choose Admin Password" : "Password"}
-                            required
-                        />
-                    </div>
+                    {dbStatus !== 'Connected' && !error && !loading && (
+                        <div className="exe-error-message" style={{ background: '#fef3c7', color: '#92400e', borderColor: '#fcd34d' }}>
+                            <span className="exe-error-icon">🕒</span>
+                            {dbStatus === 'Disconnected' ? 'Server is offline. Reconnecting...' : 'Waiting for Database connection...'}
+                        </div>
+                    )}
 
-                    {showAdminCreation && (
-                        <div className="google-input-group">
+                    <form onSubmit={handleSubmit} className="exe-form">
+                        {showAdminCreation && (
+                            <div className="exe-info-box">
+                                <strong>Setup Required:</strong> Create the root administrator account.
+                            </div>
+                        )}
+
+                        <div className="exe-input-group">
+                            <label>Username / ID</label>
                             <input
-                                type="password"
-                                className="google-input-field"
-                                value={adminActionPassword}
-                                onChange={(e) => setAdminActionPassword(e.target.value)}
-                                placeholder="Admin Action Password"
+                                type="text"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                autoFocus
                                 required
+                                className="exe-input"
+                                placeholder={showAdminCreation ? "New Admin Username" : ""}
                             />
                         </div>
-                    )}
 
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '30px' }}>
-                        <button
-                            type="submit"
-                            className="google-btn-primary"
-                            disabled={loading}
-                        >
-                            {loading ? (showAdminCreation ? 'Creating Admin...' : 'Signing in...') : (showAdminCreation ? 'Create Admin' : 'Sign in')}
-                        </button>
+                        <div className="exe-input-group">
+                            <label>Password</label>
+                            <div className="exe-password-wrapper">
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                    className="exe-input"
+                                    placeholder={showAdminCreation ? "New Admin Password" : ""}
+                                />
+                                <button
+                                    type="button"
+                                    className="exe-toggle-password"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    tabIndex={-1}
+                                >
+                                    {showPassword ? 'Hide' : 'Show'}
+                                </button>
+                            </div>
+                        </div>
+
+                        {showAdminCreation && (
+                            <div className="exe-input-group">
+                                <label>Action Token (Security)</label>
+                                <input
+                                    type="password"
+                                    value={adminActionPassword}
+                                    onChange={(e) => setAdminActionPassword(e.target.value)}
+                                    required
+                                    className="exe-input"
+                                />
+                            </div>
+                        )}
+
+                        <div className="exe-actions">
+                            <button type="submit" className="exe-btn-primary" disabled={loading}>
+                                {loading ? 'Verifying...' : (showAdminCreation ? 'Initialize System' : 'Log In')}
+                            </button>
+                            {showAdminCreation && (
+                                <button
+                                    type="button"
+                                    className="exe-btn-secondary"
+                                    onClick={handleGoToLogin}
+                                    disabled={loading}
+                                >
+                                    Go To Login
+                                </button>
+                            )}
+                        </div>
+                    </form>
+                </div>
+
+                {/* Footer / Status Bar */}
+                <div className="exe-status-bar">
+                    <div className="exe-status-left">
+                        <span className={`exe-status-indicator ${loading ? 'status-busy' :
+                            dbStatus === 'Connected' ? 'status-ready' : 'status-offline'
+                            }`}></span>
+                        {loading ? 'Processing...' :
+                            dbStatus === 'Connected' ? 'System Ready' :
+                                dbStatus === 'Connecting' ? 'Connecting to Database...' : 'Server Offline'}
                     </div>
-                </form>
+                    <div className="exe-status-right">
+                        <button onClick={() => setActiveModal('support')}>Support</button>
+                        <span className="exe-divider">|</span>
+                        <button onClick={() => setActiveModal('privacy')}>Privacy</button>
+                    </div>
+                </div>
             </div>
 
-            {/* Footer Links - Optional aesthetic touch */}
-            <div style={{ position: 'absolute', bottom: '20px', display: 'flex', gap: '20px', fontSize: '12px', color: '#1f1f1f' }}>
-                <span>English (United Kingdom)</span>
-                <span>Help</span>
-                <span>Privacy</span>
-                <span>Terms</span>
-            </div>
+            {/* Simple Modal for Info */}
+            {activeModal && (
+                <div className="exe-modal-overlay" onClick={() => setActiveModal(null)}>
+                    <div className="exe-modal-window" onClick={(e) => e.stopPropagation()}>
+                        <div className="exe-modal-header">
+                            <h3>
+                                {activeModal === 'support' && 'Technical Support'}
+                                {activeModal === 'privacy' && 'Privacy Policy'}
+                            </h3>
+                            <button onClick={() => setActiveModal(null)}>✖</button>
+                        </div>
+                        <div className="exe-modal-content">
+                            {activeModal === 'support' && (
+                                <div className="exe-support-info">
+                                    <p>For technical assistance, please contact the IT department.</p>
+                                    <ul>
+                                        <li><strong>Email:</strong> helpdesk@magrp.internal</li>
+                                        <li><strong>Ext:</strong> 4040</li>
+                                    </ul>
+                                </div>
+                            )}
+                            {activeModal === 'privacy' && (
+                                <p>This system assumes implicit consent for data monitoring for security and auditing purposes. All actions are logged.</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

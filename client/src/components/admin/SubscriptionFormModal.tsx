@@ -1,8 +1,10 @@
 import React from 'react';
 import SearchableSelect from './SearchableSelect';
 import { MdClose } from 'react-icons/md';
+import './SubscriptionModals.css';
 
 interface SubFormModalProps {
+    editMode?: boolean;
     formData: any;
     setFormData: (data: any) => void;
     customers: any[];
@@ -13,7 +15,7 @@ interface SubFormModalProps {
 }
 
 const SubscriptionFormModal: React.FC<SubFormModalProps> = ({
-    formData, setFormData, customers, memberTypes, onSubmit, onClose
+    editMode = false, formData, setFormData, customers, memberTypes, onSubmit, onClose
 }) => {
 
     const calculateEndDate = (start: string, planId: string) => {
@@ -27,46 +29,27 @@ const SubscriptionFormModal: React.FC<SubFormModalProps> = ({
         return date.toISOString().split('T')[0];
     };
 
+    const calculateStartDate = (end: string, planId: string) => {
+        if (!end || !planId) return formData.startDate;
+        const plan = memberTypes.find(t => t._id === planId);
+        if (!plan) return formData.startDate;
+
+        const date = new Date(end);
+        date.setDate(date.getDate() + 1);
+        date.setMonth(date.getMonth() - plan.durationInMonths);
+        return date.toISOString().split('T')[0];
+    };
+
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content modal-lg" onClick={e => e.stopPropagation()}>
-                <div className="modal-header" style={{
-                    background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-                    color: '#fff',
-                    padding: '1.25rem 1.5rem',
-                    borderBottom: 'none',
-                    position: 'relative',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
-                }}>
-                    <h3 className="modal-title" style={{ color: '#fff', fontWeight: 600, margin: 0 }}>
-                        Add Subscription
+            <div className="modal-content modal-lg sub-modal-shell" onClick={e => e.stopPropagation()}>
+                <div className="modal-header sub-modal-header">
+                    <h3 className="modal-title sub-modal-title">
+                        {editMode ? 'Edit Subscription' : 'Add Subscription'}
                     </h3>
                     <button
                         onClick={onClose}
-                        style={{
-                            background: 'rgba(255,255,255,0.1)',
-                            border: 'none',
-                            borderRadius: '50%',
-                            width: '32px',
-                            height: '32px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            color: 'white',
-                            transition: 'all 0.2s ease',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.background = '#ef4444';
-                            e.currentTarget.style.transform = 'rotate(90deg)';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
-                            e.currentTarget.style.transform = 'rotate(0deg)';
-                        }}
+                        className="sub-modal-close"
                     >
                         <MdClose size={18} />
                     </button>
@@ -76,28 +59,43 @@ const SubscriptionFormModal: React.FC<SubFormModalProps> = ({
                     <form onSubmit={onSubmit}>
                         <div className="form-group">
                             <label className="form-label">Select Customer</label>
-                            <SearchableSelect
-                                options={customers}
-                                value={formData.userId}
-                                onChange={(val) => setFormData({ ...formData, userId: val })}
-                                placeholder="Search Name, Email or ID..."
-                                required
-                            />
+                            {editMode ? (
+                                <div
+                                    className="form-input"
+                                    style={{
+                                        background: '#f8fafc',
+                                        color: '#334155',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        minHeight: '42px'
+                                    }}
+                                >
+                                    {customers.find(c => c._id === formData.userId)?.name || 'Selected customer'}
+                                </div>
+                            ) : (
+                                <SearchableSelect
+                                    options={customers}
+                                    value={formData.userId}
+                                    onChange={(val) => setFormData({ ...formData, userId: val })}
+                                    placeholder="Search Name, Email or ID..."
+                                    required
+                                />
+                            )}
                         </div>
 
                         {formData.userId && (() => {
                             const selectedCustomer = customers.find(c => c._id === formData.userId);
                             if (selectedCustomer) {
                                 return (
-                                    <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '1.5rem' }}>
-                                        <h4 style={{ margin: '0 0 0.5rem 0', color: '#64748b', fontSize: '0.85rem', textTransform: 'uppercase' }}>Selected Customer</h4>
-                                        <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '1rem' }}>{selectedCustomer.name}</div>
-                                        <div style={{ fontSize: '0.9rem', color: '#334155', marginTop: '0.25rem' }}>
+                                    <div className="sub-info-card">
+                                        <h4 className="sub-info-title">Selected Customer</h4>
+                                        <div className="sub-info-name">{selectedCustomer.name}</div>
+                                        <div className="sub-info-meta">
                                             {selectedCustomer.subscriberNo && <span style={{ marginRight: '1rem', fontFamily: 'monospace' }}>#{selectedCustomer.subscriberNo}</span>}
                                             {selectedCustomer.mobile && <span>📞 {selectedCustomer.mobile}</span>}
                                         </div>
                                         {selectedCustomer.address && (
-                                            <div style={{ fontSize: '0.9rem', color: '#64748b', marginTop: '0.25rem' }}>
+                                            <div className="sub-info-address">
                                                 {typeof selectedCustomer.address === 'object' ?
                                                     `${selectedCustomer.address.street || ''}, ${selectedCustomer.address.district || ''}` :
                                                     selectedCustomer.address}
@@ -149,12 +147,16 @@ const SubscriptionFormModal: React.FC<SubFormModalProps> = ({
                             </div>
 
                             <div className="form-group" style={{ marginBottom: 0 }}>
-                                <label className="form-label">End Date (Auto)</label>
+                                <label className="form-label">End Date</label>
                                 <input
                                     type="date"
                                     className="form-input"
                                     value={formData.endDate || ''}
-                                    onChange={e => setFormData({ ...formData, endDate: e.target.value })}
+                                    onChange={e => {
+                                        const newEnd = e.target.value;
+                                        const newStart = calculateStartDate(newEnd, formData.memberTypeId);
+                                        setFormData({ ...formData, endDate: newEnd, startDate: newStart });
+                                    }}
                                     required
                                 />
                             </div>
@@ -172,30 +174,31 @@ const SubscriptionFormModal: React.FC<SubFormModalProps> = ({
                                             setFormData({ ...formData, paymentMethod: val });
                                         }}
                                         required
-                                        style={{ flex: 1 }}
+                                        style={{ color: formData.paymentMethod ? '#1e293b' : '#94a3b8', flex: 1 }}
                                     >
-                                        <option value="">Select Payment Status</option>
-                                        <option value="Cash">Paid - Cash</option>
-                                        <option value="GPay">Paid - GPay</option>
-                                        <option value="Account Transfer">Paid - Account Transfer</option>
+                                        <option value="" style={{ color: '#94a3b8' }}>Select Payment Status</option>
+                                        <option value="Cash">Cash</option>
+                                        <option value="GPay">GPay</option>
+                                        <option value="Account Transfer">Account Transfer</option>
+                                        <option value="Money Order">Money Order</option>
                                         <option value="Credit Transaction">Credit Transaction</option>
-                                        <option value="Money Order">Paid - Money Order</option>
                                     </select>
                                     {(formData.paymentMethod && formData.paymentMethod.startsWith('Account Transfer')) && (
                                         <select
                                             className="form-input"
-                                            value={formData.paymentMethod.includes('-') ? formData.paymentMethod.split(' - ')[1] : ''}
+                                            value={formData.paymentMethod.includes('Account Transfer - ') ? formData.paymentMethod.replace('Account Transfer - ', '') : ''}
                                             onChange={e => {
                                                 const subMode = e.target.value;
                                                 setFormData({ ...formData, paymentMethod: `Account Transfer - ${subMode}` });
                                             }}
                                             required
-                                            style={{ flex: 1 }}
+                                            style={{ flex: 1, color: '#1e293b' }}
                                         >
                                             <option value="">Select Mode</option>
                                             <option value="Cash">Cash</option>
                                             <option value="Cheque">Cheque</option>
                                             <option value="NEFT">NEFT</option>
+                                            <option value="GPay - N Palaniappan">GPay - N Palaniappan</option>
                                         </select>
                                     )}
                                 </div>
@@ -228,7 +231,7 @@ const SubscriptionFormModal: React.FC<SubFormModalProps> = ({
                         </div>
 
                         <div className="form-actions">
-                            <button type="submit" className="btn-submit">Confirm</button>
+                            <button type="submit" className="btn-submit">{editMode ? 'Save Changes' : 'Confirm'}</button>
                             <button type="button" className="btn-cancel" onClick={onClose}>Cancel</button>
                         </div>
                     </form>

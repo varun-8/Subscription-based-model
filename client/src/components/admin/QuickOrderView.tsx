@@ -69,6 +69,17 @@ const QuickOrderView: React.FC<QuickOrderViewProps> = ({
         if (!plan) return '';
         const date = new Date(startDateStr);
         date.setMonth(date.getMonth() + plan.durationInMonths);
+        date.setDate(date.getDate() - 1);
+        return date.toISOString().split('T')[0];
+    };
+
+    const calculateStartDate = (endDateStr: string, memberTypeId: string) => {
+        if (!endDateStr || !memberTypeId) return '';
+        const plan = memberTypes.find(t => t._id === memberTypeId);
+        if (!plan) return '';
+        const date = new Date(endDateStr);
+        date.setDate(date.getDate() + 1);
+        date.setMonth(date.getMonth() - plan.durationInMonths);
         return date.toISOString().split('T')[0];
     };
 
@@ -284,30 +295,54 @@ const QuickOrderView: React.FC<QuickOrderViewProps> = ({
                                         value={customerForm.taluk}
                                         onChange={e => setCustomerForm({ ...customerForm, taluk: e.target.value })}
                                     />
-                                    <select
-                                        ref={el => { fieldRefs.current['district'] = el }}
-                                        onKeyDown={e => handleEnter(e, 'district')}
-                                        className="form-input"
-                                        value={useCustomDistrict ? 'Other' : customerForm.district}
-                                        onChange={e => { if (e.target.value === 'Other') setUseCustomDistrict(true); else { setUseCustomDistrict(false); setCustomerForm({ ...customerForm, district: e.target.value }); } }}
-                                        style={{ color: (useCustomDistrict || customerForm.district) ? '#1e293b' : '#94a3b8' }}
-                                    >
-                                        <option value="" style={{ color: '#94a3b8' }}>Select District</option>
-                                        {DISTRICTS.map((d: string) => <option key={d} value={d}>{d}</option>)}
-                                        <option value="Other">Other...</option>
-                                    </select>
-                                    <select
-                                        ref={el => { fieldRefs.current['state'] = el }}
-                                        onKeyDown={e => handleEnter(e, 'state')}
-                                        className="form-input"
-                                        value={useCustomState ? 'Other' : customerForm.state}
-                                        onChange={e => { if (e.target.value === 'Other') setUseCustomState(true); else { setUseCustomState(false); setCustomerForm({ ...customerForm, state: e.target.value }); } }}
-                                        style={{ color: (useCustomState || customerForm.state) ? '#1e293b' : '#94a3b8' }}
-                                    >
-                                        <option value="" style={{ color: '#94a3b8' }}>Select State</option>
-                                        {STATES.map((s: string) => <option key={s} value={s}>{s}</option>)}
-                                        <option value="Other">Other...</option>
-                                    </select>
+                                    <div>
+                                        <select
+                                            ref={el => { fieldRefs.current['district'] = el }}
+                                            onKeyDown={e => handleEnter(e, 'district')}
+                                            className="form-input"
+                                            value={useCustomDistrict ? 'Other' : (DISTRICTS.includes(customerForm.district) ? customerForm.district : '')}
+                                            onChange={e => { if (e.target.value === 'Other') { setUseCustomDistrict(true); setCustomerForm({ ...customerForm, district: '' }); } else { setUseCustomDistrict(false); setCustomerForm({ ...customerForm, district: e.target.value }); } }}
+                                            style={{ color: (useCustomDistrict || customerForm.district) ? '#1e293b' : '#94a3b8' }}
+                                        >
+                                            <option value="" style={{ color: '#94a3b8' }}>Select District</option>
+                                            {DISTRICTS.map((d: string) => <option key={d} value={d}>{d}</option>)}
+                                            <option value="Other">Other...</option>
+                                        </select>
+                                        {useCustomDistrict && (
+                                            <input
+                                                className="form-input"
+                                                placeholder="Enter District"
+                                                value={customerForm.district}
+                                                onChange={e => setCustomerForm({ ...customerForm, district: e.target.value.toUpperCase() })}
+                                                style={{ marginTop: '8px', border: '1.5px solid #6366f1' }}
+                                                required
+                                            />
+                                        )}
+                                    </div>
+                                    <div>
+                                        <select
+                                            ref={el => { fieldRefs.current['state'] = el }}
+                                            onKeyDown={e => handleEnter(e, 'state')}
+                                            className="form-input"
+                                            value={useCustomState ? 'Other' : (STATES.includes(customerForm.state) ? customerForm.state : '')}
+                                            onChange={e => { if (e.target.value === 'Other') { setUseCustomState(true); setCustomerForm({ ...customerForm, state: '' }); } else { setUseCustomState(false); setCustomerForm({ ...customerForm, state: e.target.value }); } }}
+                                            style={{ color: (useCustomState || customerForm.state) ? '#1e293b' : '#94a3b8' }}
+                                        >
+                                            <option value="" style={{ color: '#94a3b8' }}>Select State</option>
+                                            {STATES.map((s: string) => <option key={s} value={s}>{s}</option>)}
+                                            <option value="Other">Other...</option>
+                                        </select>
+                                        {useCustomState && (
+                                            <input
+                                                className="form-input"
+                                                placeholder="Enter State"
+                                                value={customerForm.state}
+                                                onChange={e => setCustomerForm({ ...customerForm, state: e.target.value.toUpperCase() })}
+                                                style={{ marginTop: '8px', border: '1.5px solid #6366f1' }}
+                                                required
+                                            />
+                                        )}
+                                    </div>
                                     <input
                                         ref={el => { fieldRefs.current['pincode'] = el }}
                                         onKeyDown={e => handleEnter(e, 'pincode')}
@@ -329,7 +364,8 @@ const QuickOrderView: React.FC<QuickOrderViewProps> = ({
                             </div>
 
                             <button type="submit" disabled={loading} className="submit-btn">
-                                {loading ? 'Processing...' : 'Proceed to Subscription'} <MdArrowForward size={24} />
+                                {loading ? 'Processing...' : (['Kovil', 'Nagarathaar Sangam'].includes(customerForm.customerType) ? 'Create Customer' : 'Proceed to Subscription')}
+                                {['Kovil', 'Nagarathaar Sangam'].includes(customerForm.customerType) ? <MdCheckCircle size={24} /> : <MdArrowForward size={24} />}
                             </button>
                         </form>
                     </div>
@@ -375,13 +411,13 @@ const QuickOrderView: React.FC<QuickOrderViewProps> = ({
                                         />
                                     </div>
                                     <div className="form-group">
-                                        <label className="form-label">End Date (Auto)</label>
+                                        <label className="form-label">End Date</label>
                                         <input
                                             type="date"
                                             className="form-input"
                                             value={subForm.endDate}
-                                            readOnly
-                                            style={{ background: '#f1f5f9', cursor: 'not-allowed', color: '#64748b' }}
+                                            onChange={e => setSubForm(p => ({ ...p, endDate: e.target.value, startDate: calculateStartDate(e.target.value, p.memberTypeId) }))}
+                                            required
                                         />
                                     </div>
                                 </div>
@@ -390,19 +426,43 @@ const QuickOrderView: React.FC<QuickOrderViewProps> = ({
                             <div className="form-grid-2">
                                 <div className="form-group">
                                     <label className="form-label">Payment Method</label>
-                                    <select
-                                        className="form-input"
-                                        value={subForm.paymentMethod}
-                                        onChange={e => setSubForm(p => ({ ...p, paymentMethod: e.target.value }))}
-                                        required
-                                        style={{ color: subForm.paymentMethod ? '#1e293b' : '#94a3b8' }}
-                                    >
-                                        <option value="" style={{ color: '#94a3b8' }}>Select Mode</option>
-                                        <option value="Cash">Cash / Direct</option>
-                                        <option value="GPay">GPay / UPI</option>
-                                        <option value="Transfer">Bank Transfer</option>
-                                        <option value="Credit">Credit Transaction</option>
-                                    </select>
+                                    <div style={{ display: 'flex', gap: '10px' }}>
+                                        <select
+                                            className="form-input"
+                                            value={subForm.paymentMethod && subForm.paymentMethod.startsWith('Account Transfer') ? 'Account Transfer' : (subForm.paymentMethod || '')}
+                                            onChange={e => {
+                                                const val = e.target.value;
+                                                setSubForm(p => ({ ...p, paymentMethod: val }));
+                                            }}
+                                            required
+                                            style={{ color: subForm.paymentMethod ? '#1e293b' : '#94a3b8', flex: 1 }}
+                                        >
+                                            <option value="" style={{ color: '#94a3b8' }}>Select Payment Status</option>
+                                            <option value="Cash">Cash</option>
+                                            <option value="GPay">GPay</option>
+                                            <option value="Account Transfer">Account Transfer</option>
+                                            <option value="Money Order">Money Order</option>
+                                            <option value="Credit Transaction">Credit Transaction</option>
+                                        </select>
+                                        {(subForm.paymentMethod && subForm.paymentMethod.startsWith('Account Transfer')) && (
+                                            <select
+                                                className="form-input"
+                                                value={subForm.paymentMethod.includes('Account Transfer - ') ? subForm.paymentMethod.replace('Account Transfer - ', '') : ''}
+                                                onChange={e => {
+                                                    const subMode = e.target.value;
+                                                    setSubForm(p => ({ ...p, paymentMethod: `Account Transfer - ${subMode}` }));
+                                                }}
+                                                required
+                                                style={{ flex: 1, color: '#1e293b' }}
+                                            >
+                                                <option value="">Select Mode</option>
+                                                <option value="Cash">Cash</option>
+                                                <option value="Cheque">Cheque</option>
+                                                <option value="NEFT">NEFT</option>
+                                                <option value="GPay - N Palaniappan">GPay - N Palaniappan</option>
+                                            </select>
+                                        )}
+                                    </div>
                                 </div>
                                 <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                     <div>

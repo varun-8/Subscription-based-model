@@ -79,117 +79,19 @@ const ReportsView: React.FC<ReportsViewProps> = ({ memberTypes, adTypes = [], sh
 
             let currentPosition = 0; // Track current position across pages
 
-            // Function to calculate if content fits in box
-            const willContentFit = (row: any, maxWidth: number, boxHeight: number) => {
-                let currentY = 4.5; // Start position
-
-                // Subscription ID - fixed height
-                currentY += 0;
-
-                // Name
-                currentY += 5.5;
-                const name = (row.name || 'Unknown').toUpperCase();
-                const splitName = doc.splitTextToSize(name, maxWidth);
-                currentY += splitName.length * 4.5;
-
-                // Address spacing
-                currentY += 1.0;
-
-                if (typeof row.address === 'object' && row.address) {
-                    const street = row.address.street || '';
-                    const addressLine2 = row.address.addressLine2 || '';
-                    const taluk = row.address.taluk || '';
-                    const district = row.address.district || '';
-                    const pincode = row.address.pincode || '';
-
-                    // Street
-                    if (street) {
-                        const splitStreet = doc.splitTextToSize(street, maxWidth);
-                        currentY += splitStreet.length * 4.0;
-                    }
-
-                    // Address Line 2
-                    if (addressLine2) {
-                        const splitAddr2 = doc.splitTextToSize(addressLine2, maxWidth);
-                        currentY += splitAddr2.length * 4.0;
-                    }
-
-                    // Taluk
-                    if (taluk) {
-                        const splitTaluk = doc.splitTextToSize(`${taluk},`, maxWidth);
-                        currentY += splitTaluk.length * 4.0;
-                    }
-
-                    // District, Pincode, Mobile
-                    if (district) {
-                        const pinPart = pincode ? ` - ${pincode}` : '';
-                        const mobPart = row.mobile ? `, Mob no: ${row.mobile}` : '';
-
-                        doc.setFont("helvetica", "bold");
-                        const distWidth = doc.getTextWidth(district);
-                        doc.setFont("helvetica", "normal");
-                        const pinWidth = doc.getTextWidth(pinPart);
-                        const mobWidth = doc.getTextWidth(mobPart);
-
-                        if (distWidth + pinWidth + mobWidth <= maxWidth) {
-                            currentY += 4.0;
-                        } else {
-                            currentY += 4.0; // District + pincode line
-                            if (row.mobile) {
-                                currentY += 4.0; // Mobile line
-                            }
-                        }
-                    } else if (row.mobile) {
-                        currentY += 4.0;
-                    }
-                } else {
-                    const addr = (row.address || '') + (row.mobile ? `, Mob no: ${row.mobile}` : '');
-                    const splitAddr = doc.splitTextToSize(addr, maxWidth);
-                    currentY += splitAddr.length * 4.0;
-                }
-
-                return currentY <= boxHeight;
-            };
-
             reportData.forEach((row) => {
                 const maxWidth = colWidth - 5;
 
-                // Find next available position that can fit this record
-                let positionFound = false;
-                let attempts = 0;
-                const maxAttempts = rows * cols * 4; // Prevent infinite loop (allow more attempts for multiple pages)
+                let colIndex = Math.floor(currentPosition / rows);
 
-                while (!positionFound && attempts < maxAttempts) {
-                    const colIndex = Math.floor(currentPosition / rows);
-
-                    // Check if we need a new page
-                    if (colIndex >= cols) {
-                        doc.addPage();
-                        currentPosition = 0;
-                        // Reset attempts when starting a new page to give more chances
-                        attempts = Math.min(attempts, maxAttempts - rows * cols);
-                    }
-
-                    // Check if content fits
-                    if (willContentFit(row, maxWidth, rowHeight)) {
-                        positionFound = true;
-                    } else {
-                        currentPosition++; // Skip this position
-                        attempts++;
-                    }
-                }
-
-                if (!positionFound) {
-                    // If we can't find a suitable position, force it into the next available spot
-                    const colIndex = Math.floor(currentPosition / rows);
-                    if (colIndex >= cols) {
-                        doc.addPage();
-                        currentPosition = 0;
-                    }
+                // Check if we need a new page
+                if (colIndex >= cols) {
+                    doc.addPage();
+                    currentPosition = 0;
+                    colIndex = 0;
                 }
 
                 // Now render the record
-                const colIndex = Math.floor(currentPosition / rows);
                 const rowIndex = currentPosition % rows;
 
                 const x = startX + (colIndex * (colWidth + colGap));
@@ -559,8 +461,22 @@ const ReportsView: React.FC<ReportsViewProps> = ({ memberTypes, adTypes = [], sh
                             type={startDate ? 'date' : 'text'}
                             className="filter-input"
                             placeholder="DD/MM/YYYY"
-                            onFocus={(e) => e.target.type = 'date'}
+                            onFocus={(e) => {
+                                e.target.type = 'date';
+                                try {
+                                    if (typeof e.target.showPicker === 'function') e.target.showPicker();
+                                } catch (err) {
+                                    // Ignore if not supported
+                                }
+                            }}
                             onBlur={(e) => { if (!e.target.value) e.target.type = 'text'; }}
+                            onClick={(e) => {
+                                if (e.currentTarget.type === 'date') {
+                                    try {
+                                        if (typeof e.currentTarget.showPicker === 'function') e.currentTarget.showPicker();
+                                    } catch (err) { }
+                                }
+                            }}
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
                         />
@@ -580,8 +496,20 @@ const ReportsView: React.FC<ReportsViewProps> = ({ memberTypes, adTypes = [], sh
                             type={endDate ? 'date' : 'text'}
                             className="filter-input"
                             placeholder="DD/MM/YYYY"
-                            onFocus={(e) => e.target.type = 'date'}
+                            onFocus={(e) => {
+                                e.target.type = 'date';
+                                try {
+                                    if (typeof e.target.showPicker === 'function') e.target.showPicker();
+                                } catch (err) { }
+                            }}
                             onBlur={(e) => { if (!e.target.value) e.target.type = 'text'; }}
+                            onClick={(e) => {
+                                if (e.currentTarget.type === 'date') {
+                                    try {
+                                        if (typeof e.currentTarget.showPicker === 'function') e.currentTarget.showPicker();
+                                    } catch (err) { }
+                                }
+                            }}
                             value={endDate}
                             onChange={(e) => setEndDate(e.target.value)}
                         />

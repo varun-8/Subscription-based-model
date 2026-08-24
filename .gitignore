@@ -1,28 +1,41 @@
+# ==============================================================================
 # Dependencies
+# ==============================================================================
 node_modules/
+*/node_modules/
 .pnp
 .pnp.js
 
-# Testing
-coverage/
-
-# Production builds
+# ==============================================================================
+# Production & Distribution Builds
+# ==============================================================================
 dist/
+dist-ssr/
 dist-packager/
 builder_cache/
 build/
 out/
 release/
+release-final/
 electron/out/
+client/dist/
+client/dist-ssr/
+client/build/
 
-# Environment files
+# ==============================================================================
+# Environment & Secret Files
+# ==============================================================================
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
+server/.env
+server/.env.*
+client/.env
+client/.env.*
 
-# Logs and Debug
+# ==============================================================================
+# Logs, Debug, and Generated Outputs
+# ==============================================================================
 logs/
 *.log
 npm-debug.log*
@@ -31,23 +44,57 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Specifically generated txt log files
+# Text logs & scratch files
 *log*.txt
+*_log*.txt
+*output*.txt
+app-log.txt
 dist_output.txt
 tsc_output.txt
 temp_*.txt
-invoice_creation.txt
+server/temp_grep.txt
+server/invoice_creation.txt
 
-# Editor directories and files
-.vscode/
+# ==============================================================================
+# Python & Temporary Presentation Artifacts
+# ==============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+.pptx_src/
+.pptx_verify/
+
+# ==============================================================================
+# Test & Coverage
+# ==============================================================================
+coverage/
+.nyc_output/
+
+# ==============================================================================
+# Editor & IDE Configs
+# ==============================================================================
+.vscode/*
+!.vscode/extensions.json
 .idea/
 .cursor/
-.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+*.swo
 
-# System files
+# ==============================================================================
+# Operating System Files
+# ==============================================================================
+.DS_Store
 Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# ==============================================================================
+# Backups & Local Data
+# ==============================================================================
+backups/
+*.bak
+*.dump

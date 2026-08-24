@@ -82,12 +82,21 @@ router.post('/login', async (req, res) => {
 // Create Admin (only when admin table is empty)
 router.post('/create-admin', async (req, res) => {
     try {
-        const { username, password, actionPassword, providedActionPassword } = req.body;
+        const { username, password, providedActionPassword } = req.body;
+        const normalizedUsername = typeof username === 'string' ? username.trim() : '';
 
         // Verify ADMIN_ACTION_PASSWORD
         const requiredActionPassword = process.env.ADMIN_ACTION_PASSWORD;
         if (!requiredActionPassword || providedActionPassword !== requiredActionPassword) {
             return res.status(403).json({ message: 'Invalid admin action password' });
+        }
+
+        if (!normalizedUsername || !password) {
+            return res.status(400).json({ message: 'Username and password are required' });
+        }
+
+        if (password.length < 4) {
+            return res.status(400).json({ message: 'Password must be at least 4 characters long' });
         }
 
         // Check if admin table is empty
@@ -99,7 +108,7 @@ router.post('/create-admin', async (req, res) => {
         // Create admin
         const admin = new Admin({
             name: 'Administrator',
-            username: username.trim(),
+            username: normalizedUsername,
             password: password,
             actionPassword: requiredActionPassword
         });

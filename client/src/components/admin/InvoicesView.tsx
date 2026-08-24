@@ -4,6 +4,7 @@ import {
     MdCheckCircle, MdCancel, MdFileDownload,
     MdDateRange, MdConfirmationNumber, MdCategory, MdShoppingBag, MdAccessTime
 } from 'react-icons/md';
+import './InvoicesView.css';
 
 interface InvoicesViewProps {
     data: any[];
@@ -61,7 +62,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({
     };
 
     return (
-        <div className="invoices-view" style={{ animation: 'fadeIn 0.4s ease-out', padding: '2rem' }}>
+        <div className="invoices-view">
             <div className="view-header" style={{ marginBottom: '2rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                     <h1 style={{

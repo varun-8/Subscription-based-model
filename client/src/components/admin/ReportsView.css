@@ -350,3 +350,12 @@
     color: #64748b;
     font-size: 1rem;
 }
+
+/* Force light theme for date picker popup to ensure white background */
+.filter-input[type="date"] {
+    color-scheme: light !important;
+}
+
+.filter-input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+}

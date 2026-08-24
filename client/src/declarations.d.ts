@@ -14,5 +14,9 @@ interface Window {
         selectBackupPath: () => Promise<{ success: boolean; path?: string; canceled?: boolean; error?: string }>;
         getBackupState: () => Promise<{ path: string; lastDate: string }>;
         onBackupInfo: (callback: (info: any) => void) => void;
+        // License
+        checkLicense: () => Promise<{ valid: boolean; license?: any; message?: string }>;
+        activateLicense: (key: string) => Promise<{ success: boolean; license?: any; message?: string }>;
+        getMachineId: () => Promise<string>;
     };
 }

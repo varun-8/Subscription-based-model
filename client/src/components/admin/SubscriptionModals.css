@@ -1,0 +1,149 @@
+.sub-modal-shell {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 24px 50px rgba(15, 23, 42, 0.22);
+}
+
+.sub-modal-header {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #fff;
+  padding: 1.25rem 1.5rem;
+  border-bottom: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sub-modal-title {
+  color: #fff;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+.sub-modal-close {
+  background: rgba(255, 255, 255, 0.12);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #fff;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.sub-modal-close:hover {
+  background: #ef4444;
+  transform: rotate(90deg);
+}
+
+.sub-info-card {
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 1.5rem;
+}
+
+.sub-info-title {
+  margin: 0 0 0.5rem 0;
+  color: #64748b;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sub-info-name {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 1rem;
+}
+
+.sub-info-meta {
+  font-size: 0.9rem;
+  color: #334155;
+  margin-top: 0.25rem;
+}
+
+.sub-info-address {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin-top: 0.25rem;
+}
+
+.sub-current-card {
+  background: linear-gradient(180deg, #fff7e6 0%, #ffedd5 100%);
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid #f59e0b;
+  margin-bottom: 1.5rem;
+}
+
+.sub-current-title {
+  margin: 0 0 0.5rem 0;
+  color: #92400e;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sub-current-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+}
+
+.sub-current-label {
+  font-size: 0.78rem;
+  color: #92400e;
+  font-weight: 700;
+}
+
+.sub-current-value {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.sub-status-ok {
+  font-weight: 700;
+  color: #059669;
+}
+
+.sub-status-expired {
+  font-weight: 700;
+  color: #dc2626;
+}
+
+.sub-options-card {
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  padding: 1.25rem;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+}
+
+.sub-options-title {
+  margin: 0 0 1rem 0;
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.sub-options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .sub-current-grid,
+  .sub-options-grid {
+    grid-template-columns: 1fr;
+  }
+}

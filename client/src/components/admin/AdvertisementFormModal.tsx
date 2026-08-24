@@ -78,6 +78,16 @@ const AdvertisementFormModal: React.FC<AdvertisementFormModalProps> = ({
     }, [formData.startDate]);
 
     const [selectedTypes, setSelectedTypes] = useState<string[]>(formData.types || []);
+    const [typeAmounts, setTypeAmounts] = useState<{ name: string, amount: number }[]>(formData.typeAmounts || []);
+
+    // Sync formData.typeAmounts directly if missing when types are present
+    useEffect(() => {
+        if (formData.types && formData.types.length > 0 && (!formData.typeAmounts || formData.typeAmounts.length === 0)) {
+            const initialAmounts = formData.types.map((t: string) => ({ name: t, amount: 0 }));
+            setTypeAmounts(initialAmounts);
+            setFormData((prev: any) => ({ ...prev, typeAmounts: initialAmounts }));
+        }
+    }, []);
 
     // Custom Type Logic
     const standardTypes = ['Black & White', 'Colour', 'Front', 'Back', 'Half Page', 'Full Page'];
@@ -93,13 +103,18 @@ const AdvertisementFormModal: React.FC<AdvertisementFormModalProps> = ({
 
     const toggleType = (typeName: string) => {
         let newTypes;
+        let newTypeAmounts = [...typeAmounts];
         if (selectedTypes.includes(typeName)) {
             newTypes = selectedTypes.filter(t => t !== typeName);
+            newTypeAmounts = newTypeAmounts.filter(t => t.name !== typeName);
         } else {
             newTypes = [...selectedTypes, typeName];
+            // Initialize with 0, but user will be forced to fill it if they want the total to be correct
+            newTypeAmounts.push({ name: typeName, amount: 0 });
         }
         setSelectedTypes(newTypes);
-        setFormData({ ...formData, types: newTypes });
+        setTypeAmounts(newTypeAmounts);
+        setFormData((prev: any) => ({ ...prev, types: newTypes, typeAmounts: newTypeAmounts }));
     };
 
     const handleCustChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -140,13 +155,24 @@ const AdvertisementFormModal: React.FC<AdvertisementFormModalProps> = ({
                 clientName = selectedCust.name;
             }
 
+            // Validation: Ensure all selected types have an amount > 0
+            const missingAmounts = typeAmounts.filter(ta => ta.amount <= 0);
+            if (missingAmounts.length > 0) {
+                const names = missingAmounts.map(m => m.name).join(', ');
+                if (showNotification) showNotification(`Please enter a price for: ${names}`, "warning");
+                else alert(`Please enter a price for: ${names}`);
+                setLoading(false);
+                return;
+            }
+
             const adPayload = {
                 ...formData,
                 userId,
                 clientName,
                 startDate: adDate,
                 endDate: adDate,
-                types: selectedTypes
+                types: selectedTypes,
+                typeAmounts: typeAmounts
             };
 
             const res = await axios.post('/api/admin/advertisements', adPayload, { withCredentials: true });
@@ -168,7 +194,17 @@ const AdvertisementFormModal: React.FC<AdvertisementFormModalProps> = ({
 
     const handleEditSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const finalData = { ...formData, startDate: adDate, endDate: adDate, types: selectedTypes };
+        
+        // Validation: Ensure all selected types have an amount > 0
+        const missingAmounts = typeAmounts.filter(ta => ta.amount <= 0);
+        if (missingAmounts.length > 0) {
+            const names = missingAmounts.map(m => m.name).join(', ');
+            if (showNotification) showNotification(`Please enter a price for: ${names}`, "warning");
+            else alert(`Please enter a price for: ${names}`);
+            return;
+        }
+
+        const finalData = { ...formData, startDate: adDate, endDate: adDate, types: selectedTypes, typeAmounts: typeAmounts };
         setFormData(finalData);
         setTimeout(() => onSubmit(e), 0);
     };
@@ -215,28 +251,7 @@ const AdvertisementFormModal: React.FC<AdvertisementFormModalProps> = ({
                     <h3 className="modal-title" style={{ color: '#fff', fontWeight: 600, margin: 0 }}>{editMode ? 'Edit Advertisement' : 'New Advertisement'}</h3>
                     <button
                         onClick={onClose}
-                        style={{
-                            background: 'rgba(255,255,255,0.1)',
-                            border: 'none',
-                            borderRadius: '50%',
-                            width: '32px',
-                            height: '32px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            color: 'white',
-                            transition: 'all 0.2s ease',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.background = '#ef4444';
-                            e.currentTarget.style.transform = 'rotate(90deg)';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
-                            e.currentTarget.style.transform = 'rotate(0deg)';
-                        }}
+                        className="premium-close-btn premium-close-btn--dark"
                     >
                         <MdClose size={18} />
                     </button>
@@ -530,12 +545,21 @@ const AdvertisementFormModal: React.FC<AdvertisementFormModalProps> = ({
                                                 setIsCustomTypeActive(active);
                                                 if (!active) {
                                                     const newTypes = selectedTypes.filter(t => t !== customType);
+                                                    const newTypeAmounts = typeAmounts.filter(t => t.name !== customType);
                                                     setSelectedTypes(newTypes);
-                                                    setFormData({ ...formData, types: newTypes });
+                                                    setTypeAmounts(newTypeAmounts);
+                                                    setFormData((prev: any) => ({ 
+                                                        ...prev, 
+                                                        types: newTypes, 
+                                                        typeAmounts: newTypeAmounts,
+                                                        price: newTypeAmounts.reduce((sum, item) => sum + (item.amount || 0), 0)
+                                                    }));
                                                 } else if (customType) {
                                                     const newTypes = [...selectedTypes, customType];
+                                                    const newTypeAmounts = [...typeAmounts, { name: customType, amount: 0 }];
                                                     setSelectedTypes(newTypes);
-                                                    setFormData({ ...formData, types: newTypes });
+                                                    setTypeAmounts(newTypeAmounts);
+                                                    setFormData((prev: any) => ({ ...prev, types: newTypes, typeAmounts: newTypeAmounts }));
                                                 }
                                             }}
                                             style={{ accentColor: '#e11d48', cursor: 'pointer' }}
@@ -558,15 +582,64 @@ const AdvertisementFormModal: React.FC<AdvertisementFormModalProps> = ({
                                             setCustomType(newVal);
 
                                             let updatedTypes = selectedTypes.filter(t => t !== oldVal);
+                                            let updatedTypeAmounts = typeAmounts.map(t => t.name === oldVal ? { ...t, name: newVal } : t);
                                             if (newVal) {
                                                 updatedTypes = [...updatedTypes, newVal];
+                                                if (!updatedTypeAmounts.some(t => t.name === newVal)) {
+                                                    updatedTypeAmounts.push({ name: newVal, amount: 0 });
+                                                }
+                                            } else {
+                                                updatedTypeAmounts = updatedTypeAmounts.filter(t => t.name !== oldVal);
                                             }
                                             setSelectedTypes(updatedTypes);
-                                            setFormData({ ...formData, types: updatedTypes });
+                                            setTypeAmounts(updatedTypeAmounts);
+                                            setFormData({ ...formData, types: updatedTypes, typeAmounts: updatedTypeAmounts });
                                         }}
                                         autoFocus
                                         style={{ borderColor: '#e11d48', boxShadow: '0 0 0 1px rgba(225, 29, 72, 0.1)' }}
                                     />
+                                </div>
+                            )}
+
+                            {selectedTypes.length > 0 && (
+                                <div style={{ marginTop: '1.5rem', background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0', animation: 'fadeIn 0.3s' }}>
+                                    <label className="form-label" style={{ fontWeight: 600, marginBottom: '0.75rem', color: '#1e293b' }}>Ad Type Amounts</label>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                        {selectedTypes.map((typeName) => {
+                                            const tAmt = typeAmounts.find(t => t.name === typeName)?.amount || 0;
+                                            return (
+                                                <div key={typeName} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                    <span style={{ minWidth: '150px', color: '#475569', fontWeight: 500 }}>{typeName}</span>
+                                                    <div style={{ position: 'relative', flex: 1 }}>
+                                                        <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }}>₹</span>
+                                                        <input
+                                                            type="number"
+                                                            className="form-input"
+                                                            value={tAmt === 0 ? '' : tAmt}
+                                                            onChange={(e) => {
+                                                                const val = Number(e.target.value);
+                                                                const newAmounts = [...typeAmounts];
+                                                                const idx = newAmounts.findIndex(t => t.name === typeName);
+                                                                if (idx >= 0) newAmounts[idx].amount = val;
+                                                                else newAmounts.push({ name: typeName, amount: val });
+                                                                setTypeAmounts(newAmounts);
+                                                                
+                                                                const newTotal = newAmounts.reduce((sum, item) => sum + (item.amount || 0), 0);
+                                                                
+                                                                setFormData({ 
+                                                                    ...formData, 
+                                                                    typeAmounts: newAmounts,
+                                                                    price: newTotal
+                                                                });
+                                                            }}
+                                                            placeholder="Amount for this ad type"
+                                                            style={{ paddingLeft: '2rem', height: '40px' }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -621,9 +694,9 @@ const AdvertisementFormModal: React.FC<AdvertisementFormModalProps> = ({
 
                         <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '1.5rem' }}>
                             <h4 style={{ margin: '0 0 1rem 0', color: '#334155', fontSize: '1rem' }}>Payment Details</h4>
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label className="form-label">Price (Rs.)</label>
+                            <div className="form-row" style={{ alignItems: 'flex-start' }}>
+                                <div className="form-group" style={{ flex: 1.5 }}>
+                                    <label className="form-label">Price</label>
                                     <div style={{ position: 'relative' }}>
                                         <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }}>₹</span>
                                         <input
@@ -637,7 +710,50 @@ const AdvertisementFormModal: React.FC<AdvertisementFormModalProps> = ({
                                         />
                                     </div>
                                 </div>
-                                <div className="form-group">
+                                <div className="form-group" style={{ flex: 1.5 }}>
+                                    <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.tdsAmount > 0 || formData.isTdsApplicable}
+                                            onChange={(e) => {
+                                                if (e.target.checked) setFormData({ ...formData, isTdsApplicable: true });
+                                                else setFormData({ ...formData, isTdsApplicable: false, tdsAmount: 0 });
+                                            }}
+                                            style={{ margin: 0, width: '16px', height: '16px', accentColor: '#e11d48' }}
+                                        />
+                                        Apply TDS Deduction
+                                    </label>
+                                    {(formData.tdsAmount > 0 || formData.isTdsApplicable) ? (
+                                        <div style={{ position: 'relative', marginTop: '-1px' }}>
+                                            <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#e11d48' }}>₹</span>
+                                            <input
+                                                type="number"
+                                                className="form-input"
+                                                name="tdsAmount"
+                                                value={formData.tdsAmount || ''}
+                                                onChange={(e) => setFormData({ ...formData, tdsAmount: Number(e.target.value) })}
+                                                placeholder="TDS Amount"
+                                                style={{ paddingLeft: '2rem', height: '45px', fontSize: '1.1rem', fontWeight: 600, color: '#be123c', background: '#fff1f2', border: '1px solid #fda4af' }}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div style={{ height: '45px' }}></div>
+                                    )}
+                                </div>
+                                <div className="form-group" style={{ flex: 1.2 }}>
+                                    <label className="form-label">Final Amount</label>
+                                    <div style={{ position: 'relative' }}>
+                                        <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#16a34a' }}>₹</span>
+                                        <input
+                                            type="number"
+                                            className="form-input"
+                                            value={Math.max(0, (formData.price || 0) - (formData.tdsAmount || 0))}
+                                            readOnly
+                                            style={{ paddingLeft: '2rem', height: '45px', fontSize: '1.1rem', fontWeight: 600, color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0', cursor: 'not-allowed' }}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="form-group" style={{ flex: 1 }}>
                                     <label className="form-label">Date</label>
                                     <input
                                         type="date"
@@ -690,6 +806,65 @@ const AdvertisementFormModal: React.FC<AdvertisementFormModalProps> = ({
                                         </select>
                                     )}
                                 </div>
+                                {formData.paymentMethod === 'Credit Transaction' && (
+                                    <div style={{ marginTop: '1rem', border: '1px solid #e11d48', padding: '1rem', borderRadius: '8px', background: '#fff1f2', marginBottom: '1rem' }}>
+                                        <h5 style={{ margin: '0 0 10px 0', color: '#be123c', fontSize: '0.95rem' }}>Credit Options</h5>
+                                        <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+                                            <select
+                                                className="form-input"
+                                                value={formData.creditType || 'Full Credit'}
+                                                onChange={(e) => setFormData({ ...formData, creditType: e.target.value })}
+                                                style={{ height: '45px', flex: 1 }}
+                                            >
+                                                <option value="Full Credit">Full Credit</option>
+                                                <option value="Part Payment">Part Payment</option>
+                                            </select>
+                                        </div>
+                                        {formData.creditType === 'Part Payment' && (
+                                            <>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                    <label className="form-label" style={{ color: '#be123c', fontSize: '0.85rem' }}>Amount Paid Now (Rs.)</label>
+                                                    <input
+                                                        type="number"
+                                                        className="form-input"
+                                                        value={formData.amountPaidNow || ''}
+                                                        onChange={(e) => setFormData({ ...formData, amountPaidNow: e.target.value })}
+                                                        required
+                                                        style={{ height: '45px' }}
+                                                    />
+                                                </div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                    <label className="form-label" style={{ color: '#be123c', fontSize: '0.85rem' }}>Part Payment Date</label>
+                                                    <input
+                                                        type="date"
+                                                        className="form-input"
+                                                        value={formData.partPaymentDate ? formData.partPaymentDate.split('T')[0] : ''}
+                                                        onChange={(e) => setFormData({ ...formData, partPaymentDate: e.target.value })}
+                                                        required
+                                                        style={{ height: '45px' }}
+                                                    />
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+
+                                {(formData.paymentMethod === 'Credit Transaction' || formData.tdsAmount > 0 || formData.isTdsApplicable) && (
+                                    <div style={{ marginTop: '0.5rem', border: '1px solid #e11d48', padding: '1rem', borderRadius: '8px', background: '#fff1f2' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            <label className="form-label" style={{ color: '#be123c', fontSize: '0.85rem' }}>Admin Action Password</label>
+                                                <input
+                                                type="password"
+                                                className="form-input"
+                                                value={formData.adminActionPassword || ''}
+                                                onChange={(e) => setFormData({ ...formData, adminActionPassword: e.target.value })}
+                                                placeholder={editMode ? "Required only if applying/changing TDS or Credit" : ((formData.tdsAmount > 0 || formData.isTdsApplicable) ? "Required for TDS deduction" : "Required for credit transactions")}
+                                                required={!editMode}
+                                                style={{ height: '45px' }}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 

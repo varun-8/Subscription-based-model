@@ -20,9 +20,10 @@ interface CustomerDetailModalProps {
     onDelete: (id: string) => void;
     onEditSubscriptionDate?: (subscription: any, type: 'startDate' | 'endDate') => void;
     onOpenSubDetails?: (subscription: any) => void;
+    onDeleteSubscription?: (id: string) => void;
 }
 
-const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ customer, history, adHistory, hideSubscriptionInfo, onClose, onEdit, onDelete, onEditSubscriptionDate, onOpenSubDetails }) => {
+const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ customer, history, adHistory, hideSubscriptionInfo, onClose, onEdit, onDelete, onEditSubscriptionDate, onOpenSubDetails, onDeleteSubscription }) => {
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -57,26 +58,8 @@ const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ customer, his
 
                 <button
                     onClick={onClose}
-                    style={{
-                        position: 'absolute', top: '16px', right: '16px',
-                        background: 'transparent',
-                        border: 'none',
-                        borderRadius: '50%',
-                        width: '36px', height: '36px',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: 'pointer', zIndex: 100,
-                        color: '#94a3b8',
-                        transition: 'all 0.2s ease',
-                        fontSize: '24px', fontWeight: 'bold'
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.background = '#fee2e2';
-                        e.currentTarget.style.color = '#ef4444';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.color = '#94a3b8';
-                    }}
+                    className="premium-close-btn premium-close-btn--light"
+                    style={{ position: 'absolute', top: '16px', right: '16px', zIndex: 100, fontSize: '24px', fontWeight: 'bold' }}
                 >
                     &times;
                 </button>
@@ -272,7 +255,7 @@ const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ customer, his
                                                     <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: '0.8rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Start Date</th>
                                                     <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: '0.8rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>End Date</th>
                                                     <th style={{ padding: '16px 24px', textAlign: 'center', fontSize: '0.8rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Status</th>
-                                                    {onEditSubscriptionDate && <th style={{ padding: '16px 24px', textAlign: 'center', fontSize: '0.8rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Dates</th>}
+                                                    {(onEditSubscriptionDate || onDeleteSubscription) && <th style={{ padding: '16px 24px', textAlign: 'center', fontSize: '0.8rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Actions</th>}
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -315,20 +298,38 @@ const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ customer, his
                                                                     {rowStatus}
                                                                 </span>
                                                             </td>
-                                                            {onEditSubscriptionDate && (
+                                                            {(onEditSubscriptionDate || onDeleteSubscription) && (
                                                                 <td style={{ padding: '16px 24px', textAlign: 'center' }}>
-                                                                    {sub.status === 'Active' && (
-                                                                        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
-                                                                            <button onClick={(e) => { e.stopPropagation(); onEditSubscriptionDate(sub, 'startDate'); }}
-                                                                                style={{ border: 'none', background: 'transparent', color: '#6366f1', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem' }}>
-                                                                                Edit Start
+                                                                    <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', alignItems: 'center' }}>
+                                                                        {onEditSubscriptionDate && sub.status === 'Active' && (
+                                                                            <>
+                                                                                <button
+                                                                                    onClick={(e) => { e.stopPropagation(); onEditSubscriptionDate(sub, 'startDate'); }}
+                                                                                    className="action-icon-btn edit-btn"
+                                                                                    title="Edit Start Date"
+                                                                                >
+                                                                                    <MdEdit size={14} /> Start
+                                                                                </button>
+                                                                                <button
+                                                                                    onClick={(e) => { e.stopPropagation(); onEditSubscriptionDate(sub, 'endDate'); }}
+                                                                                    className="action-icon-btn edit-btn"
+                                                                                    title="Edit End Date"
+                                                                                >
+                                                                                    <MdEdit size={14} /> End
+                                                                                </button>
+                                                                            </>
+                                                                        )}
+
+                                                                        {onDeleteSubscription && (
+                                                                            <button
+                                                                                onClick={(e) => { e.stopPropagation(); onDeleteSubscription(sub._id); }}
+                                                                                className="action-icon-btn delete-btn"
+                                                                                title="Delete Subscription Record"
+                                                                            >
+                                                                                <MdDelete size={16} /> Delete
                                                                             </button>
-                                                                            <button onClick={(e) => { e.stopPropagation(); onEditSubscriptionDate(sub, 'endDate'); }}
-                                                                                style={{ border: 'none', background: 'transparent', color: '#6366f1', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem' }}>
-                                                                                Edit End
-                                                                            </button>
-                                                                        </div>
-                                                                    )}
+                                                                        )}
+                                                                    </div>
                                                                 </td>
                                                             )}
                                                         </tr>
@@ -408,6 +409,43 @@ const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ customer, his
                     background: #fee2e2 !important;
                     transform: translateY(-1px);
                     box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2) !important;
+                }
+                
+                .action-icon-btn {
+                    height: 32px;
+                    padding: 0 12px;
+                    border-radius: 8px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 6px;
+                    border: none;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    font-size: 0.8rem;
+                    font-weight: 600;
+                }
+                
+                .edit-btn {
+                    background: #eef2ff;
+                    color: #6366f1;
+                }
+                .edit-btn:hover {
+                    background: #6366f1;
+                    color: white;
+                    transform: translateY(-1px);
+                    box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
+                }
+                
+                .delete-btn {
+                    background: #fef2f2;
+                    color: #ef4444;
+                }
+                .delete-btn:hover {
+                    background: #ef4444;
+                    color: white;
+                    transform: translateY(-1px);
+                    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
                 }
             `}</style>
         </div>

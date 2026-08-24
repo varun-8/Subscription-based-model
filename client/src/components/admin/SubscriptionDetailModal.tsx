@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-    MdCalendarToday,
     MdCheckCircle,
     MdWarning,
     MdPayment,
@@ -20,7 +19,7 @@ interface SubscriptionDetailModalProps {
 }
 
 const SubscriptionDetailModal: React.FC<SubscriptionDetailModalProps> = ({
-    subscription, onClose, onRenewClick, onDownloadPDF, onOpenProfile, onEditSubscriptionDate, onEditSubscription
+    subscription, onClose, onRenewClick, onDownloadPDF, onOpenProfile, onEditSubscription
 }) => {
     if (!subscription) return null;
 
@@ -34,16 +33,18 @@ const SubscriptionDetailModal: React.FC<SubscriptionDetailModalProps> = ({
     return (
         <div className="modal-overlay" onClick={onClose} style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(8px)',
+            background: 'radial-gradient(circle at 20% 20%, rgba(15,23,42,0.32), rgba(2,6,23,0.7))',
+            backdropFilter: 'blur(9px)',
             zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center',
             padding: '20px'
         }}>
             <div className="modal-content" onClick={e => e.stopPropagation()} style={{
                 background: '#ffffff',
-                borderRadius: '16px',
-                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                borderRadius: '20px',
+                border: '1px solid #e2e8f0',
+                boxShadow: '0 30px 60px -20px rgba(2, 6, 23, 0.55)',
                 width: '100%',
-                maxWidth: '700px',
+                maxWidth: '760px',
                 maxHeight: '90vh',
                 position: 'relative',
                 display: 'flex',
@@ -53,221 +54,172 @@ const SubscriptionDetailModal: React.FC<SubscriptionDetailModalProps> = ({
             }}>
                 <button
                     onClick={onClose}
-                    style={{
-                        position: 'absolute', top: '16px', right: '16px',
-                        background: 'transparent', border: 'none', borderRadius: '50%',
-                        width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: 'pointer', zIndex: 100, color: '#94a3b8',
-                        transition: 'all 0.2s ease',
-                        fontSize: '24px', fontWeight: 'bold'
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.background = '#fee2e2';
-                        e.currentTarget.style.color = '#ef4444';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.color = '#94a3b8';
-                    }}
+                    className="premium-close-btn premium-close-btn--dark"
+                    style={{ position: 'absolute', top: '14px', right: '14px', zIndex: 100, fontSize: '22px', fontWeight: 'bold' }}
                 >
                     &times;
                 </button>
 
-                <div style={{ overflowY: 'auto', flex: 1 }}>
-                    {/* Header Section - Refined Size */}
-                    <div style={{
-                        padding: '32px 64px 32px 40px',
-                        borderBottom: '1px solid #f1f5f9',
-                        position: 'relative'
-                    }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <div style={{ flex: 1 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                                    <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em' }}>
-                                        {subscription.userId?.name}
-                                    </h2>
-                                    <span style={{
-                                        fontSize: '0.7rem', fontWeight: 700, color: '#6366f1',
-                                        background: '#eef2ff', padding: '3px 10px', borderRadius: '6px',
-                                        fontFamily: 'monospace', border: '1px solid #e0e7ff'
-                                    }}>
-                                        {subscription.userId?.subscriberNo || subscription.subscriptionId || subscription._id.substring(0, 6).toUpperCase()}
-                                    </span>
-                                </div>
-                                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#64748b' }}>
-                                    <span style={{ fontSize: '0.85rem', fontWeight: 600, background: '#f8fafc', padding: '2px 8px', borderRadius: '4px', border: '1px solid #f1f5f9' }}>
-                                        {subscription.memberTypeId?.name}
-                                    </span>
-                                    <span style={{ fontSize: '1rem', color: '#e2e8f0' }}>•</span>
-                                    <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>
-                                        {subscription.memberTypeId?.durationInMonths} Months
-                                    </span>
-                                    {onOpenProfile && (
-                                        <>
-                                            <span style={{ fontSize: '1rem', color: '#e2e8f0' }}>•</span>
-                                            <button
-                                                onClick={() => onOpenProfile(subscription.userId)}
-                                                style={{
-                                                    background: 'none', border: 'none', color: '#6366f1',
-                                                    fontWeight: 700, cursor: 'pointer', fontSize: '0.8rem',
-                                                    padding: 0, display: 'flex', alignItems: 'center', gap: '4px',
-                                                    textDecoration: 'underline', textUnderlineOffset: '2px'
-                                                }}
-                                            >
-                                                View Profile
-                                            </button>
-                                        </>
-                                    )}
-                                </div>
+                <div style={{
+                    padding: '26px 56px 24px 30px',
+                    background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                    borderBottom: '1px solid #1f2937'
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '18px' }}>
+                        <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                                <h2 style={{ margin: 0, fontSize: '1.42rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.02em' }}>
+                                    {subscription.userId?.name}
+                                </h2>
+                                <span style={{
+                                    fontSize: '0.72rem', fontWeight: 700, color: '#dbeafe',
+                                    background: 'rgba(99,102,241,0.25)', padding: '4px 10px', borderRadius: '999px',
+                                    fontFamily: 'monospace', border: '1px solid rgba(129,140,248,0.5)'
+                                }}>
+                                    {subscription.userId?.subscriberNo || subscription.subscriptionId || subscription._id.substring(0, 6).toUpperCase()}
+                                </span>
                             </div>
-                            <div style={{
-                                padding: '6px 14px', borderRadius: '20px',
-                                background: statusInfo.bg, color: statusInfo.color,
-                                border: `1px solid ${statusInfo.color}30`,
-                                display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800,
-                                fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.02em',
-                                boxShadow: `0 2px 4px ${statusInfo.color}10`
-                            }}>
-                                {statusInfo.icon} {statusInfo.label}
+                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#94a3b8', flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '0.8rem', fontWeight: 600, background: 'rgba(15,23,42,0.45)', padding: '4px 10px', borderRadius: '999px', border: '1px solid rgba(148,163,184,0.25)', color: '#e2e8f0' }}>
+                                    {subscription.memberTypeId?.name}
+                                </span>
+                                <span style={{ fontSize: '0.82rem', fontWeight: 500, color: '#cbd5e1' }}>
+                                    {subscription.memberTypeId?.durationInMonths} Months
+                                </span>
+                                {onOpenProfile && (
+                                    <button
+                                        onClick={() => onOpenProfile(subscription.userId)}
+                                        style={{
+                                            background: 'transparent', border: 'none', color: '#93c5fd',
+                                            fontWeight: 700, cursor: 'pointer', fontSize: '0.8rem',
+                                            padding: 0, textDecoration: 'underline', textUnderlineOffset: '2px'
+                                        }}
+                                    >
+                                        View Profile
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                        <div style={{
+                            padding: '8px 14px', borderRadius: '999px',
+                            background: statusInfo.bg, color: statusInfo.color,
+                            border: `1px solid ${statusInfo.color}40`,
+                            display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800,
+                            fontSize: '0.73rem', textTransform: 'uppercase', letterSpacing: '0.03em'
+                        }}>
+                            {statusInfo.icon} {statusInfo.label}
+                        </div>
+                    </div>
+                </div>
+
+                <div style={{ overflowY: 'auto', flex: 1, padding: '24px 30px 28px' }}>
+                    <div style={{
+                        marginBottom: '16px',
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr',
+                        gap: '12px'
+                    }}>
+                        <div style={{
+                            background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px'
+                        }}>
+                            <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', marginBottom: '6px' }}>Activation</div>
+                            <div style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>
+                                {new Date(subscription.startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </div>
+                        </div>
+                        <div style={{
+                            background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px'
+                        }}>
+                            <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', marginBottom: '6px' }}>Expiry</div>
+                            <div style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>
+                                {new Date(subscription.endDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                             </div>
                         </div>
                     </div>
 
-                    <div style={{ padding: '32px 40px' }}>
-                        {/* Schedule Section */}
-                        <div style={{ marginBottom: '32px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, margin: 0 }}>
-                                    <MdCalendarToday size={14} /> Schedule & Validity
-                                </h3>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                    {onEditSubscriptionDate && (
-                                        <>
-                                            <button
-                                                onClick={() => onEditSubscriptionDate(subscription, 'startDate')}
-                                                style={{ padding: '6px 10px', background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
-                                            >
-                                                Edit Start
-                                            </button>
-                                            <button
-                                                onClick={() => onEditSubscriptionDate(subscription, 'endDate')}
-                                                style={{ padding: '6px 10px', background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
-                                            >
-                                                Edit End
-                                            </button>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
+                    <div style={{
+                        padding: '12px 14px',
+                        background: daysRemaining < 0 ? '#fff1f2' : '#f0fdf4',
+                        border: `1px solid ${daysRemaining < 0 ? '#fecdd3' : '#bbf7d0'}`,
+                        borderRadius: '12px',
+                        fontSize: '0.9rem',
+                        color: daysRemaining < 0 ? '#be123c' : '#166534',
+                        fontWeight: 700,
+                        marginBottom: '16px'
+                    }}>
+                        {daysRemaining < 0 ? `Expired ${Math.abs(daysRemaining)} days ago` : `${daysRemaining} days remaining`}
+                    </div>
 
-                            <div style={{
-                                display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px',
-                                background: '#f8fafc', padding: '24px', borderRadius: '12px',
-                                border: '1px solid #f1f5f9'
-                            }}>
-                                <div>
-                                    <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>Activation</div>
-                                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b' }}>
-                                        {new Date(subscription.startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                    </div>
-                                </div>
-                                <div>
-                                    <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>Expiry</div>
-                                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b' }}>
-                                        {new Date(subscription.endDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                    </div>
-                                </div>
-                                <div style={{ gridColumn: 'span 2', marginTop: '4px' }}>
-                                    <div style={{
-                                        padding: '12px', background: 'white', borderRadius: '8px',
-                                        fontSize: '0.9rem', textAlign: 'center',
-                                        color: daysRemaining < 0 ? '#e11d48' : '#166534', fontWeight: 700,
-                                        border: '1px solid #f1f5f9'
-                                    }}>
-                                        {daysRemaining < 0 ? `Expired ${Math.abs(daysRemaining)} days ago` : `${daysRemaining} days remaining`}
-                                    </div>
-                                </div>
+                    <div style={{
+                        padding: '16px', borderRadius: '12px',
+                        background: subscription.paymentMethod === 'Credit Transaction' ? '#fffbeb' : '#f8fafc',
+                        border: `1px solid ${subscription.paymentMethod === 'Credit Transaction' ? '#fde68a' : '#e2e8f0'}`,
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '14px',
+                        marginBottom: '22px'
+                    }}>
+                        <div>
+                            <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <MdPayment size={14} /> Payment Method
+                            </div>
+                            <div style={{ fontSize: '0.98rem', fontWeight: 700, color: '#0f172a' }}>
+                                {subscription.paymentMethod || 'Not Specified'}
                             </div>
                         </div>
-
-                        {/* Payment Status - More compact */}
-                        <div style={{
-                            padding: '20px 24px', borderRadius: '12px',
-                            background: subscription.paymentMethod === 'Credit Transaction' ? '#fffbeb' : '#f8fafc',
-                            border: `1px solid ${subscription.paymentMethod === 'Credit Transaction' ? '#fde68a' : '#f1f5f9'}`,
-                            display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                        }}>
-                            <div>
-                                <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <MdPayment size={14} /> Payment Method
-                                </div>
-                                <div style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b' }}>
-                                    {subscription.paymentMethod || 'Not Specified'}
-                                </div>
-                            </div>
-                            <div style={{ textAlign: 'right' }}>
-                                <div style={{ color: '#94a3b8', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>Reference No</div>
-                                <div style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b' }}>{subscription.referenceNo || subscription.tempReceiptNo || 'N/A'}</div>
-                            </div>
+                        <div style={{ textAlign: 'right' }}>
+                            <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>Reference</div>
+                            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a' }}>{subscription.referenceNo || subscription.tempReceiptNo || 'N/A'}</div>
                         </div>
+                    </div>
 
-                        {/* Action Buttons - Refined Size */}
-                        <div style={{ marginTop: '32px', display: 'flex', gap: '12px' }}>
-                            {onRenewClick && (
-                                <button
-                                    onClick={() => onRenewClick(subscription)}
-                                    style={{
-                                        flex: 1.5, padding: '12px', background: '#0f172a', color: 'white',
-                                        border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                                        fontSize: '0.9rem', transition: 'all 0.2s'
-                                    }}
-                                    onMouseEnter={(e) => e.currentTarget.style.background = '#1e293b'}
-                                    onMouseLeave={(e) => e.currentTarget.style.background = '#0f172a'}
-                                >
-                                    <MdAutorenew size={18} /> Renew Subscription
-                                </button>
-                            )}
-                            {onEditSubscription && (
-                                <button
-                                    onClick={() => onEditSubscription(subscription)}
-                                    style={{
-                                        padding: '12px', background: 'white', color: '#475569',
-                                        border: '1px solid #e2e8f0', borderRadius: '8px', fontWeight: 600, cursor: 'pointer',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        fontSize: '0.9rem', transition: 'all 0.2s'
-                                    }}
-                                    onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
-                                    onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
-                                >
-                                    <MdEditNote size={20} />
-                                </button>
-                            )}
-                            {onDownloadPDF && (
-                                <button
-                                    onClick={() => onDownloadPDF(subscription)}
-                                    style={{
-                                        flex: 1, padding: '12px', background: 'white', color: '#475569',
-                                        border: '1px solid #e2e8f0', borderRadius: '8px', fontWeight: 600, cursor: 'pointer',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                                        transition: 'all 0.2s', fontSize: '0.9rem'
-                                    }}
-                                    onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
-                                    onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
-                                >
-                                    <MdHistory size={18} /> Get Invoice
-                                </button>
-                            )}
-                        </div>
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                        {onRenewClick && (
+                            <button
+                                onClick={() => onRenewClick(subscription)}
+                                style={{
+                                    flex: '1 1 220px', padding: '12px', background: '#0f172a', color: 'white',
+                                    border: 'none', borderRadius: '10px', fontWeight: 700, cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                    fontSize: '0.9rem'
+                                }}
+                            >
+                                <MdAutorenew size={18} /> Renew Subscription
+                            </button>
+                        )}
+                        {onEditSubscription && (
+                            <button
+                                onClick={() => onEditSubscription(subscription)}
+                                style={{
+                                    flex: '1 1 140px', padding: '12px', background: 'white', color: '#334155',
+                                    border: '1px solid #cbd5e1', borderRadius: '10px', fontWeight: 700, cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                    fontSize: '0.9rem'
+                                }}
+                            >
+                                <MdEditNote size={18} /> Edit
+                            </button>
+                        )}
+                        {onDownloadPDF && (
+                            <button
+                                onClick={() => onDownloadPDF(subscription)}
+                                style={{
+                                    flex: '1 1 170px', padding: '12px', background: 'white', color: '#334155',
+                                    border: '1px solid #cbd5e1', borderRadius: '10px', fontWeight: 700, cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                    fontSize: '0.9rem'
+                                }}
+                            >
+                                <MdHistory size={18} /> Get Invoice
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
 
             <style>{`
-                .modal-overlay { animation: fadeIn 0.2s ease-out; }
-                .modal-content { animation: scaleIn 0.2s ease-out; }
+                .modal-overlay { animation: fadeIn 0.18s ease-out; }
+                .modal-content { animation: scaleIn 0.22s ease-out; }
                 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-                @keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+                @keyframes scaleIn { from { transform: translateY(8px) scale(0.985); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
             `}</style>
         </div>
     );

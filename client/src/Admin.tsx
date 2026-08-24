@@ -3,12 +3,15 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+// LICENSE SYSTEM DISABLED
+// import { useLicense } from './context/LicenseContext';
 
 // Styles
 import './admin.css';
 
 // Components
 import Sidebar from './components/admin/Sidebar';
+import { MdExitToApp } from 'react-icons/md';
 import DashboardStats from './components/admin/DashboardStats';
 import CustomersView from './components/admin/CustomersView';
 import SubscriptionsView from './components/admin/SubscriptionsView';
@@ -38,11 +41,15 @@ import PasswordPromptModal from './components/admin/PasswordPromptModal';
 import EditSubscriptionDateModal from './components/admin/EditSubscriptionDateModal';
 import LoadingSpinner from './components/admin/LoadingSpinner';
 import DetailedBreakdownView from './components/admin/DetailedBreakdownView';
+import ImportModal from './components/admin/ImportModal';
+
 
 
 
 const Admin = () => {
     // --- State ---
+    // LICENSE SYSTEM DISABLED
+    // const { } = useLicense();
     const [stats, setStats] = useState<any>({ totalCustomers: 0, totalSubscribers: 0, activeSubscriptions: 0, renewalNeededSubscriptions: 0, allSubscriptions: 0, revenue: 0 });
     const [view, setView] = useState('dashboard');
     const [data, setData] = useState<any[]>([]);
@@ -55,13 +62,31 @@ const Admin = () => {
 
     // Customer Form State
     const [showCustomerForm, setShowCustomerForm] = useState(false);
-    const [customerForm, setCustomerForm] = useState({ name: '', street: '', taluk: '', district: '', state: '', pincode: '', mobile: '', whatsapp: '', customerType: 'Subscription', adType: '' });
+    const [customerForm, setCustomerForm] = useState({
+        name: '',
+        street: '',
+        addressLine2: '',
+        taluk: '',
+        district: '',
+        state: '',
+        country: 'India',
+        pincode: '',
+        mobile: '',
+        whatsapp: '',
+        customerType: 'Subscription',
+        dispatchType: 'Post',
+        adType: ''
+    });
     const [editMode, setEditMode] = useState(false);
     const [editId, setEditId] = useState('');
 
     // Subscription Form State
     const [showSubForm, setShowSubForm] = useState(false);
-    const [subForm, setSubForm] = useState({ userId: '', memberTypeId: '', startDate: '', endDate: '', paymentMethod: '' });
+    const [subForm, setSubForm] = useState({ userId: '', memberTypeId: '', startDate: '', endDate: '', paymentMethod: '', referenceNo: '', tempReceiptNo: '' });
+    const [subEditMode, setSubEditMode] = useState(false);
+    const [subEditId, setSubEditId] = useState('');
+    const [showSubEditPasswordModal, setShowSubEditPasswordModal] = useState(false);
+    const [pendingSubEditPayload, setPendingSubEditPayload] = useState<any>(null);
 
     // Member Type Form State
     const [showMemberTypeForm, setShowMemberTypeForm] = useState(false);
@@ -86,6 +111,8 @@ const Admin = () => {
     const [adForm, setAdForm] = useState<any>({ clientName: '', adName: '', types: [], price: '', startDate: '', endDate: '', status: 'Active', pageSize: 'Half', qty: 1 });
     const [adEditMode, setAdEditMode] = useState(false);
     const [adEditId, setAdEditId] = useState('');
+    const [showAdEditPasswordModal, setShowAdEditPasswordModal] = useState(false);
+    const [adToEdit, setAdToEdit] = useState<any>(null);
 
     // Customer Detail Modal State
     const [showDetailModal, setShowDetailModal] = useState(false);
@@ -146,10 +173,29 @@ const Admin = () => {
     const [showSubDetailModal, setShowSubDetailModal] = useState(false);
     const [selectedSubscriptionForModal, setSelectedSubscriptionForModal] = useState<any>(null);
 
+    // Import Modal State
+    const [showImportModal, setShowImportModal] = useState(false);
+    const [importType, setImportType] = useState<'customers' | 'subscriptions' | 'advertisements'>('customers');
+
+
     const handleOpenSubDetails = (sub: any) => {
         setSelectedSubscriptionForModal(sub);
         setShowSubDetailModal(true);
     };
+
+    const handleOpenImport = (type: 'customers' | 'subscriptions' | 'advertisements') => {
+        setImportType(type);
+        setShowImportModal(true);
+    };
+
+    const handleImportSuccess = (count: number) => {
+        showNotification(`Successfully imported ${count} records`, 'success');
+        if (view === 'subscribers' || importType === 'customers') fetchData('subscribers');
+        if (view === 'subscriptions' || importType === 'subscriptions') fetchData('subscriptions');
+        if (view === 'advertisements' || importType === 'advertisements') fetchData('advertisements');
+        fetchStats();
+    };
+
 
 
 
@@ -197,7 +243,6 @@ const Admin = () => {
     useEffect(() => {
         fetchStats();
 
-        // Listen for automatic backup info from Electron
         if (window.electronAPI && window.electronAPI.onBackupInfo) {
             window.electronAPI.onBackupInfo((info: any) => {
                 if (info.success) {
@@ -315,7 +360,21 @@ const Admin = () => {
                 showNotification('Customer created successfully', 'success');
             }
             setShowCustomerForm(false);
-            setCustomerForm({ name: '', street: '', taluk: '', district: '', state: '', pincode: '', mobile: '', whatsapp: '', customerType: 'Subscription', adType: '' });
+            setCustomerForm({
+                name: '',
+                street: '',
+                addressLine2: '',
+                taluk: '',
+                district: '',
+                state: '',
+                country: 'India',
+                pincode: '',
+                mobile: '',
+                whatsapp: '',
+                customerType: 'Subscription',
+                dispatchType: 'Post',
+                adType: ''
+            });
             fetchData('subscribers');
         } catch (err: any) {
             handleError(err, 'Failed to save customer');
@@ -326,7 +385,21 @@ const Admin = () => {
 
     const openCreateCustomer = () => {
         setEditMode(false);
-        setCustomerForm({ name: '', street: '', taluk: '', district: '', state: '', pincode: '', mobile: '', whatsapp: '', customerType: 'Subscription', adType: '' });
+        setCustomerForm({
+            name: '',
+            street: '',
+            addressLine2: '',
+            taluk: '',
+            district: '',
+            state: '',
+            country: 'India',
+            pincode: '',
+            mobile: '',
+            whatsapp: '',
+            customerType: 'Subscription',
+            dispatchType: 'Post',
+            adType: ''
+        });
         setShowCustomerForm(true);
     };
 
@@ -344,17 +417,22 @@ const Admin = () => {
     const openEditCustomer = (cust: any) => {
         setEditId(cust._id);
         setEditMode(true);
-        const addr = (typeof cust.address === 'object' && cust.address) ? cust.address : { street: cust.address || '', taluk: '', district: '', state: '', pincode: '' };
+        const addr = (typeof cust.address === 'object' && cust.address)
+            ? cust.address
+            : { street: cust.address || '', addressLine2: '', taluk: '', district: '', state: '', country: 'India', pincode: '' };
         setCustomerForm({
             name: cust.name,
             street: addr.street || '',
+            addressLine2: addr.addressLine2 || '',
             taluk: addr.taluk || '',
             district: addr.district || '',
             state: addr.state || '',
+            country: addr.country || 'India',
             pincode: addr.pincode || '',
             mobile: cust.mobile || '',
             whatsapp: cust.whatsapp || '',
             customerType: cust.customerType || 'Subscription',
+            dispatchType: cust.dispatchType || 'Post',
             adType: cust.adType || ''
         });
         setShowCustomerForm(true);
@@ -454,10 +532,44 @@ const Admin = () => {
             const today = new Date().toISOString().split('T')[0];
             // Default EndDate will be set when Plan is selected
 
-            setSubForm({ userId: '', memberTypeId: '', startDate: today, endDate: '', paymentMethod: '' } as any);
+            setSubEditMode(false);
+            setSubEditId('');
+            setSubForm({ userId: '', memberTypeId: '', startDate: today, endDate: '', paymentMethod: '', referenceNo: '', tempReceiptNo: '' } as any);
             setShowSubForm(true);
         } catch (err: any) {
             handleError(err, 'Failed to load subscription form data');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const openEditSubscriptionForm = async (subscription: any) => {
+        try {
+            setLoading(true);
+
+            if (customers.length === 0) {
+                const custRes = await axios.get('/api/admin/subscribers', { withCredentials: true });
+                setCustomers(custRes.data);
+            }
+            if (memberTypes.length === 0) {
+                const memRes = await axios.get('/api/admin/member-types', { withCredentials: true });
+                setMemberTypes(memRes.data);
+            }
+
+            setSubEditMode(true);
+            setSubEditId(subscription._id || '');
+            setSubForm({
+                userId: subscription.userId?._id || (typeof subscription.userId === 'string' ? subscription.userId : ''),
+                memberTypeId: subscription.memberTypeId?._id || (typeof subscription.memberTypeId === 'string' ? subscription.memberTypeId : ''),
+                startDate: subscription.startDate ? new Date(subscription.startDate).toISOString().split('T')[0] : '',
+                endDate: subscription.endDate ? new Date(subscription.endDate).toISOString().split('T')[0] : '',
+                paymentMethod: subscription.paymentMethod || '',
+                referenceNo: subscription.referenceNo || '',
+                tempReceiptNo: subscription.tempReceiptNo || ''
+            } as any);
+            setShowSubForm(true);
+        } catch (err: any) {
+            handleError(err, 'Failed to prepare subscription edit');
         } finally {
             setLoading(false);
         }
@@ -651,6 +763,12 @@ const Admin = () => {
 
         try {
             setLoading(true);
+            if (subEditMode && subEditId) {
+                setPendingSubEditPayload({ ...subForm, id: subEditId });
+                setShowSubEditPasswordModal(true);
+                return;
+            }
+
             const res = await axios.post('/api/admin/subscriptions', subForm, { withCredentials: true });
 
             // Handle Success Modal
@@ -676,6 +794,31 @@ const Admin = () => {
 
         } catch (err: any) {
             handleError(err, 'Failed to create subscription');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSubscriptionEditPasswordSuccess = async (password: string) => {
+        if (!pendingSubEditPayload?.id) return;
+
+        try {
+            setLoading(true);
+            const { id, ...payload } = pendingSubEditPayload;
+            await axios.put(`/api/admin/subscriptions/${id}`, { ...payload, password }, { withCredentials: true });
+
+            showNotification('Subscription updated successfully', 'success');
+            setShowSubForm(false);
+            setSubEditMode(false);
+            setSubEditId('');
+            setPendingSubEditPayload(null);
+
+            if (view === 'subscriptions') {
+                fetchSubscriptions(subStatusFilter, subPlanFilter, subPaymentFilter || '');
+            }
+            await fetchStats();
+        } catch (err: any) {
+            handleError(err, 'Failed to update subscription');
         } finally {
             setLoading(false);
         }
@@ -918,6 +1061,35 @@ const Admin = () => {
         }
     };
 
+    const partPaymentAd = async (id: string, amount: number) => {
+        try {
+            setLoading(true);
+            const res = await axios.put(`/api/admin/advertisements/${id}`, {
+                creditType: 'Part Payment',
+                amountPaidIncrement: amount,
+                partPaymentDate: new Date().toISOString()
+            }, { withCredentials: true });
+            showNotification(`Part payment of ₹${amount} recorded successfully`, 'success');
+
+            // Handle Success Modal
+            if (res.data.invoice) {
+                setSuccessData({
+                    customerName: res.data.advertisement?.clientName || 'Customer',
+                    invoice: res.data.invoice
+                });
+                setShowSuccessModal(true);
+            }
+
+            // Refresh dashboards/stats
+            await fetchStats();
+            fetchData('advertisements');
+        } catch (err: any) {
+            handleError(err, 'Failed to record part payment');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const deleteAd = (id: string) => {
         openConfirm('Delete Advertisement?', 'Are you sure you want to delete this advertisement?', async () => {
             try {
@@ -936,7 +1108,7 @@ const Admin = () => {
 
     const openAddAd = async () => {
         setAdEditMode(false);
-        setAdForm({ clientName: '', adName: '', types: [], price: '', startDate: '', endDate: '', status: 'Active', paymentMethod: '' });
+        setAdForm({ clientName: '', adName: '', types: [], price: '', startDate: '', endDate: '', status: 'Active', paymentMethod: '', partPaymentDate: new Date().toISOString().split('T')[0] });
         try {
             const [custRes, typeRes] = await Promise.all([
                 axios.get('/api/admin/subscribers?type=Advertisement', { withCredentials: true }),
@@ -950,7 +1122,13 @@ const Admin = () => {
         setShowAdForm(true);
     };
 
-    const openEditAd = async (ad: any) => {
+    const openEditAd = (ad: any) => {
+        setAdToEdit(ad);
+        setShowAdEditPasswordModal(true);
+    };
+
+    const handleAdEditPasswordSuccess = async () => {
+        const ad = adToEdit;
         setAdEditId(ad._id);
         setAdEditMode(true);
         setAdForm({ ...ad, types: ad.types || [], paymentMethod: ad.paymentMethod || '' });
@@ -965,6 +1143,8 @@ const Admin = () => {
             handleError(err, "Failed to load dependencies");
         }
         setShowAdForm(true);
+        setShowAdEditPasswordModal(false);
+        setAdToEdit(null);
     };
 
     const openAdHistory = (ad: any) => {
@@ -1133,30 +1313,50 @@ const Admin = () => {
 
             doc.setFontSize(10);
             doc.setTextColor(100);
-            if (ad.paymentMethod !== 'Credit Transaction') {
-                doc.text('Bill No:', detailsX, currentDetailY, { align: 'left' });
-                doc.setTextColor(0);
-                doc.setFont('helvetica', 'bold');
-                doc.text(realInvNo, 195, currentDetailY, { align: 'right' });
-                doc.setFont('helvetica', 'normal');
-                currentDetailY += 6;
-            }
+            doc.text('Bill No:', detailsX, currentDetailY, { align: 'left' });
+            doc.setTextColor(0);
+            doc.setFont('helvetica', 'bold');
+            doc.text(realInvNo, 195, currentDetailY, { align: 'right' });
+            doc.setFont('helvetica', 'normal');
+            currentDetailY += 6;
 
             doc.setTextColor(100);
             doc.text('Date:', detailsX, currentDetailY, { align: 'left' });
             doc.setTextColor(0);
             doc.setFont('helvetica', 'bold');
-            doc.text(new Date().toLocaleDateString('en-GB'), 195, currentDetailY, { align: 'right' });
+
+            const cDate = ad.createdAt ? new Date(ad.createdAt) : new Date();
+            doc.text(cDate.toLocaleDateString('en-GB'), 195, currentDetailY, { align: 'right' });
             doc.setFont('helvetica', 'normal');
             currentDetailY += 6;
+
+            if (ad && ad.paymentMethod !== 'Credit Transaction' && ad.paymentDate) {
+                doc.setTextColor(100);
+                doc.text('Paid On:', detailsX, currentDetailY, { align: 'left' });
+                doc.setTextColor(0);
+                doc.setFont('helvetica', 'bold');
+                doc.text(new Date(ad.paymentDate).toLocaleDateString('en-GB'), 195, currentDetailY, { align: 'right' });
+                doc.setFont('helvetica', 'normal');
+                currentDetailY += 6;
+            }
 
             doc.setTextColor(100);
             doc.text('Payment:', detailsX, currentDetailY, { align: 'left' });
             doc.setTextColor(0);
             doc.setFont('helvetica', 'bold');
-            doc.text(ad.paymentMethod || 'nil', 195, currentDetailY, { align: 'right' });
+            doc.text(ad?.paymentMethod || 'nil', 195, currentDetailY, { align: 'right' });
             doc.setFont('helvetica', 'normal');
             currentDetailY += 6;
+
+            if (ad.referenceNo) {
+                doc.setTextColor(100);
+                doc.text('Ref No (UTR):', detailsX, currentDetailY, { align: 'left' });
+                doc.setTextColor(0);
+                doc.setFont('helvetica', 'bold');
+                doc.text(ad.referenceNo, 195, currentDetailY, { align: 'right' });
+                doc.setFont('helvetica', 'normal');
+                currentDetailY += 6;
+            }
 
             doc.setTextColor(100);
             doc.text('Receipt No:', detailsX, currentDetailY, { align: 'left' });
@@ -1175,12 +1375,10 @@ const Admin = () => {
             doc.text(adTypeLabel, 105, extraYForBox + 6.5, { align: 'center' });
             doc.setFont('helvetica', 'normal');
 
-            // Divider (Moved down slightly)
             doc.setDrawColor(200);
             doc.setLineWidth(0.5);
-            doc.line(15, extraY + 20, 195, extraY + 20);
+            doc.line(15, extraY + 15, 195, extraY + 15);
 
-            // Add Address for Ad Invoice
             const adAddr = ad.userId?.address;
             const clientName = ad.clientName || 'Valued Client';
             const customerLines = [clientName];
@@ -1199,13 +1397,12 @@ const Admin = () => {
                 }
             }
 
-            // Add Mobile Number
             if (ad.userId?.mobile) {
                 customerLines.push(`Mob: ${ad.userId.mobile}`);
             }
 
             const customerBlockImg = createAddressImage(customerLines, true);
-            let adAddrY = extraY + 30;
+            let adAddrY = extraY + 22;
             if (customerBlockImg) {
                 const imgProps = doc.getImageProperties(customerBlockImg);
                 const scale = 0.12;
@@ -1216,38 +1413,94 @@ const Admin = () => {
             }
 
             // --- Table ---
-            const typeStr = ad.types && ad.types.length > 0 ? ad.types.join(', ') : '-';
-            const tableBody = [[
-                ad.adName || 'Advertisement Charge',
-                typeStr,
-                `Rs. ${ad.price}`
-            ]];
+            const basePrice = Number(ad.price) || 0;
+            const tdsAmount = Number(ad.tdsAmount) || 0;
+            const finalAmount = basePrice - tdsAmount;
+
+            let tableBody = [];
+            if (ad.typeAmounts && ad.typeAmounts.length > 0) {
+                tableBody = ad.typeAmounts.map((ta: any) => [
+                    `${ad.adName || 'Ad'} - ${ta.name}`,
+                    `Rs. ${ta.amount}`
+                ]);
+            } else {
+                const typeStr = ad.types && ad.types.length > 0 ? ad.types.join(', ') : '';
+                const description = `${ad.adName || 'Advertisement Charge'}${typeStr ? `\nAd Type: ${typeStr}` : ''}`;
+                tableBody = [[description, `Rs. ${basePrice}`]];
+            }
+
+            if (tdsAmount > 0) {
+                tableBody.push(['Less: TDS Deducted', `Rs. -${tdsAmount}`]);
+            }
+
+            let tableFontSize = 10;
+            const totalLines = tableBody.reduce((acc: number, row: any[]) => acc + (row[0] ? String(row[0]).split('\n').length : 1), 0);
+            if (totalLines > 15 || tableBody.length > 10) tableFontSize = 8;
+            else if (totalLines > 10) tableFontSize = 9;
+
+            const tablePadding = tableBody.length > 5 ? 3 : 5;
 
             autoTable(doc, {
-                startY: Math.max(120, adAddrY + 15),
-                head: [['Description', 'Type / Format', 'Amount']],
+                startY: Math.max(110, adAddrY + 10),
+                head: [['Description', 'Amount']],
                 body: tableBody,
                 theme: 'grid',
+                margin: { bottom: 75 },
                 styles: {
-                    fontSize: 10,
-                    cellPadding: 6,
+                    fontSize: tableFontSize,
+                    cellPadding: tablePadding,
                     textColor: 50,
                     lineColor: [230, 230, 230],
                     lineWidth: 0.1
                 },
                 headStyles: {
-                    fillColor: [241, 245, 249], // Light Slate #f1f5f9
-                    textColor: [15, 23, 42], // Dark Slate #0f172a
+                    fillColor: [241, 245, 249],
+                    textColor: [15, 23, 42],
                     fontStyle: 'bold',
-                    halign: 'left'
+                    halign: 'left',
+                    fontSize: 10
                 },
                 columnStyles: {
-                    2: { halign: 'right', fontStyle: 'bold' }
+                    0: { cellWidth: 'auto' },
+                    1: { halign: 'right', fontStyle: 'bold', cellWidth: 40 }
                 },
-                foot: [[
-                    { content: 'Total Amount:', colSpan: 2, styles: { halign: 'right', fontStyle: 'bold', fontSize: 11 } },
-                    { content: `Rs. ${ad.price || 0}`, styles: { halign: 'right', fontStyle: 'bold', fontSize: 11, textColor: '#334155' } }
-                ]],
+                foot: (() => {
+                    const rows: any[][] = [[
+                        { content: 'Total Amount:', colSpan: 1, styles: { halign: 'right', fontStyle: 'bold', fontSize: 11 } },
+                        { content: `Rs. ${finalAmount}`, styles: { halign: 'right', fontStyle: 'bold', fontSize: 11, textColor: [51, 65, 85] } }
+                    ]];
+
+                    const paid = Number(ad.amountPaidNow) || 0;
+                    const partDate = ad.partPaymentDate ? new Date(ad.partPaymentDate).toLocaleDateString('en-GB') : '';
+
+                    if (paid > 0 && ad.paymentMethod === 'Credit Transaction') {
+                        rows.push([
+                            { content: `Part Payment Received (${partDate}):`, colSpan: 1, styles: { halign: 'right', fontStyle: 'bold', fontSize: 10, textColor: [15, 118, 110] } },
+                            { content: `Rs. ${paid}`, styles: { halign: 'right', fontStyle: 'bold', fontSize: 10, textColor: [15, 118, 110] } }
+                        ]);
+                        rows.push([
+                            { content: 'Final Balance Due:', colSpan: 1, styles: { halign: 'right', fontStyle: 'bold', fontSize: 11, textColor: [190, 18, 60] } },
+                            { content: `Rs. ${finalAmount - paid}`, styles: { halign: 'right', fontStyle: 'bold', fontSize: 11, textColor: [190, 18, 60] } }
+                        ]);
+                    } else if (ad.paymentMethod !== 'Credit Transaction' && partDate && paid > 0) {
+                        const payDate = ad.paymentDate ? new Date(ad.paymentDate).toLocaleDateString('en-GB') : '';
+
+                        rows.push([
+                            { content: `Initial Part Payment (${partDate}):`, colSpan: 1, styles: { halign: 'right', fontSize: 9, textColor: [100, 100, 100] } },
+                            { content: `Rs. ${paid}`, styles: { halign: 'right', fontSize: 9, textColor: [100, 100, 100] } }
+                        ]);
+                        rows.push([
+                            { content: `Balance Settled (${payDate}):`, colSpan: 1, styles: { halign: 'right', fontSize: 9, textColor: [100, 100, 100] } },
+                            { content: `Rs. ${finalAmount - paid}`, styles: { halign: 'right', fontSize: 9, textColor: [100, 100, 100] } }
+                        ]);
+                        rows.push([
+                            { content: 'Total Amount (Fully Paid):', colSpan: 1, styles: { halign: 'right', fontStyle: 'bold', fontSize: 10, textColor: [22, 163, 74] } },
+                            { content: `Rs. ${finalAmount}`, styles: { halign: 'right', fontStyle: 'bold', fontSize: 10, textColor: [22, 163, 74] } }
+                        ]);
+                    }
+
+                    return rows;
+                })() as any,
                 footStyles: { fillColor: [255, 255, 255] }
             });
 
@@ -1255,7 +1508,6 @@ const Admin = () => {
             const pageHeight = doc.internal.pageSize.height;
             const bankY = pageHeight - 65;
 
-            // Bank Details (Left)
             doc.setFontSize(10);
             doc.setTextColor('#334155');
             doc.text('Bank Details:', 15, bankY);
@@ -1271,13 +1523,10 @@ const Admin = () => {
                 'GPay: 9843424699'
             ], 15, bankY + 6);
 
-
-            // QR Code (Left, below bank details)
             if (qrCodeData) {
                 doc.addImage(qrCodeData, 'PNG', 70, bankY - 5, 35, 35);
             }
 
-            // Signature (Right Bottom)
             const signatureY = bankY + 5;
             doc.setFontSize(10);
             doc.setTextColor(0);
@@ -1287,13 +1536,13 @@ const Admin = () => {
             doc.setTextColor(150);
             doc.text('(Authorized Signatory)', 195, bankY + 30, { align: 'right' });
 
-            // Bottom Branding
             doc.setDrawColor('#334155');
-            doc.setLineWidth(0.5); // Lightened line
+            doc.setLineWidth(0.5);
             doc.line(15, pageHeight - 15, 195, pageHeight - 15);
 
             // Save Logic
-            const filename = `Invoice_${ad.clientName}.pdf`;
+            const safeClientName = (ad.clientName || 'draft').replace(/[^a-zA-Z0-9_\-\s]/g, '_');
+            const filename = `Invoice_${safeClientName}.pdf`;
             const electron = (window as any).electronAPI;
 
             if (electron) {
@@ -1313,6 +1562,26 @@ const Admin = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const deleteSubscription = async (subId: string) => {
+        openConfirm('Delete Subscription', 'Are you sure you want to delete this subscription? This will also delete the associated invoice.', async () => {
+            try {
+                setLoading(true);
+                await axios.delete(`/api/admin/subscriptions/${subId}`, { withCredentials: true });
+                showNotification('Subscription deleted successfully!', 'success');
+
+                if (selectedCustomer) {
+                    openCustomerDetails(selectedCustomer);
+                }
+                fetchData(view);
+            } catch (err) {
+                handleError(err, 'Failed to delete subscription');
+            } finally {
+                setLoading(false);
+                closeConfirm();
+            }
+        });
     };
 
     // --- Actions: Invoices ---
@@ -1384,21 +1653,19 @@ const Admin = () => {
             doc.setFontSize(10);
             const categoryLabel = invoice.category ? `${invoice.category} Invoice` : 'Tax Invoice';
             // Invoice Details Block (Right)
-            const detailsX = 135;
+            const detailsX = 125; // Shifted left to give more space
             let currentDetailY = 32;
             const invNo = invoice.invoiceNumber || invoice._id;
             const dateStr = invoice.dateIssued ? new Date(invoice.dateIssued).toLocaleDateString('en-GB') : 'N/A';
 
-            if (!(invoice.category === 'Advertisement' && invoice.paymentMethod === 'Credit Transaction')) {
-                doc.setFontSize(10);
-                doc.setTextColor(100);
-                doc.text('Bill No:', detailsX, currentDetailY, { align: 'left' });
-                doc.setTextColor(0);
-                doc.setFont('helvetica', 'bold');
-                doc.text(invNo, 195, currentDetailY, { align: 'right' });
-                doc.setFont('helvetica', 'normal');
-                currentDetailY += 6;
-            }
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            doc.text('Bill No:', detailsX, currentDetailY, { align: 'left' });
+            doc.setTextColor(0);
+            doc.setFont('helvetica', 'bold');
+            doc.text(invNo, 195, currentDetailY, { align: 'right' });
+            doc.setFont('helvetica', 'normal');
+            currentDetailY += 6;
 
             doc.setTextColor(100);
             doc.text('Date:', detailsX, currentDetailY, { align: 'left' });
@@ -1444,9 +1711,17 @@ const Admin = () => {
             doc.text('Payment:', detailsX, currentDetailY, { align: 'left' });
             doc.setTextColor(0);
             doc.setFont('helvetica', 'bold');
-            doc.text(invoice.paymentMethod || 'nil', 195, currentDetailY, { align: 'right' });
+
+            const paymentMethodText = invoice.paymentMethod || 'nil';
+            const maxPaymentWidth = 38; // Reduced width to force wrapping before overlapping label
+            const paymentLines = doc.splitTextToSize(paymentMethodText, maxPaymentWidth);
+
+            doc.text(paymentLines, 195, currentDetailY, { align: 'right' });
             doc.setFont('helvetica', 'normal');
-            currentDetailY += 6;
+
+            // Adjust vertical spacing based on number of lines
+            // Base increment is 6, add extra for each additional line
+            currentDetailY += 6 + ((paymentLines.length - 1) * 4);
 
             const statusColor = invoice.status === 'Paid' ? '#059669' : '#dc2626';
             doc.setTextColor(100);
@@ -1512,7 +1787,7 @@ const Admin = () => {
 
             // --- Table ---
             const tableBody = invoice.items && invoice.items.length > 0
-                ? invoice.items.map((i: any) => {
+                ? invoice.items.map((i: any, index: number) => {
                     let desc = i.description;
                     const isSubscription = invoice.category === 'Subscription' || (!invoice.category && invoice.subscriptionId);
 
@@ -1545,7 +1820,7 @@ const Admin = () => {
                         }
                     }
                     return [
-                        invoice.userId?.subscriberNo || '-',
+                        index === 0 ? (invoice.userId?.subscriberNo || '-') : '',
                         desc,
                         `Rs. ${i.amount}`
                     ];
@@ -1570,14 +1845,24 @@ const Admin = () => {
                     `Rs. ${invoice.amount || 0}`
                 ]];
 
+            let tableFontSize = 10;
+            const totalLines = tableBody.reduce((acc: number, row: any[]) => acc + (row[1] ? String(row[1]).split('\n').length : 1), 0);
+            if (totalLines > 15 || tableBody.length > 8) tableFontSize = 8;
+            else if (totalLines > 10) tableFontSize = 9;
+
+            const tablePadding = tableBody.length > 5 ? 3 : 5;
+
+            const tableStartY = Math.max(115, nextY + 10);
+            let finalTableY = tableStartY;
             autoTable(doc, {
-                startY: Math.max(130, nextY + 15),
+                startY: tableStartY,
                 head: [['Cus ID', 'Description', 'Amount']],
                 body: tableBody,
                 theme: 'grid',
+                margin: { bottom: 75 },
                 styles: {
-                    fontSize: 10,
-                    cellPadding: 6,
+                    fontSize: tableFontSize,
+                    cellPadding: tablePadding,
                     textColor: 50,
                     lineColor: [230, 230, 230],
                     lineWidth: 0.1
@@ -1586,21 +1871,91 @@ const Admin = () => {
                     fillColor: [241, 245, 249], // Premium Light Slate
                     textColor: [15, 23, 42],
                     fontStyle: 'bold',
-                    halign: 'left'
+                    halign: 'left',
+                    fontSize: 10
                 },
                 columnStyles: {
                     0: { cellWidth: 30 },
                     2: { halign: 'right', fontStyle: 'bold' }
                 },
-                foot: [[
-                    { content: 'Total Amount:', colSpan: 2, styles: { halign: 'right', fontStyle: 'bold', fontSize: 11 } },
-                    { content: `Rs. ${invoice.amount || 0}`, styles: { halign: 'right', fontStyle: 'bold', fontSize: 11, textColor: '#334155' } }
-                ]],
-                footStyles: { fillColor: [255, 255, 255] }
+                didDrawPage: () => {
+                    // `lastAutoTable` is not guaranteed on every draw callback.
+                    finalTableY = (doc as any).lastAutoTable?.finalY ?? finalTableY;
+                }
             });
 
-            // --- Footer Content: Bank Details & Signature ---
+            // Get the final Y position from the table
+            finalTableY = (doc as any).lastAutoTable?.finalY ?? finalTableY;
+
+            // --- Summary Section (appears only once, at the end) ---
+            const summaryStartY = finalTableY + 8;
             const pageHeight = doc.internal.pageSize.height;
+            const summaryMaxY = pageHeight - 75; // Leave space for bank details
+
+            // Only add summary if there's space on the current page
+            if (summaryStartY < summaryMaxY) {
+                // doc.setDrawColor(200);
+                // doc.setLineWidth(0.5);
+                // Removed line that was overlapping with text
+                // doc.line(125, summaryStartY - 2, 195, summaryStartY - 2);
+
+                let currentSummaryY = summaryStartY;
+                const totalAmount = Number(invoice.amount) || 0;
+                const ad = invoice.advertisementId;
+
+                // Total Amount
+                doc.setFontSize(11);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(51, 65, 85);
+                doc.text('Total Amount:', 125, currentSummaryY, { align: 'left' });
+                doc.text(`Rs. ${totalAmount}`, 195, currentSummaryY, { align: 'right' });
+                currentSummaryY += 7;
+
+                // Advertisement Part Payment Details
+                if (ad && typeof ad === 'object') {
+                    const paid = Number(ad.amountPaidNow) || 0;
+                    const partDate = ad.partPaymentDate ? new Date(ad.partPaymentDate).toLocaleDateString('en-GB') : '';
+
+                    if (paid > 0) {
+                        if (ad.paymentMethod === 'Credit Transaction') {
+                            // Part payment pending
+                            doc.setFontSize(10);
+                            doc.setFont('helvetica', 'bold');
+                            doc.setTextColor(15, 118, 110);
+                            doc.text(`Part Payment Paid (${partDate}):`, 125, currentSummaryY, { align: 'left' });
+                            doc.text(`Rs. ${paid}`, 195, currentSummaryY, { align: 'right' });
+                            currentSummaryY += 6;
+
+                            doc.setFontSize(11);
+                            doc.setFont('helvetica', 'bold');
+                            doc.setTextColor(190, 18, 60);
+                            doc.text('Balance Due:', 125, currentSummaryY, { align: 'left' });
+                            doc.text(`Rs. ${totalAmount - paid}`, 195, currentSummaryY, { align: 'right' });
+                        } else if (partDate && paid > 0) {
+                            // Part payment fully settled
+                            doc.setFontSize(9);
+                            doc.setFont('helvetica', 'normal');
+                            doc.setTextColor(100, 100, 100);
+                            doc.text(`Part Payment Received (${partDate}):`, 125, currentSummaryY, { align: 'left' });
+                            doc.text(`Rs. ${paid}`, 195, currentSummaryY, { align: 'right' });
+                            currentSummaryY += 5;
+
+                            const payDate = ad.paymentDate ? new Date(ad.paymentDate).toLocaleDateString('en-GB') : '';
+                            doc.text(`Balance Settled (${payDate}):`, 125, currentSummaryY, { align: 'left' });
+                            doc.text(`Rs. ${totalAmount - paid}`, 195, currentSummaryY, { align: 'right' });
+                            currentSummaryY += 6;
+
+                            doc.setFontSize(10);
+                            doc.setFont('helvetica', 'bold');
+                            doc.setTextColor(22, 163, 74);
+                            doc.text('Status: FULLY PAID', 125, currentSummaryY, { align: 'left' });
+                            doc.text(`Rs. ${totalAmount}`, 195, currentSummaryY, { align: 'right' });
+                        }
+                    }
+                }
+            }
+
+            // --- Footer Content: Bank Details & Signature ---
             const bankY = pageHeight - 65;
 
             // Bank Details (Left)
@@ -1663,6 +2018,42 @@ const Admin = () => {
         }
     };
 
+    const handleLogout = async () => {
+        openConfirm('Sign Out', 'Are you sure you want to end your session?', async () => {
+            try {
+                setLoading(true);
+
+                // Automatic Backup on Logout (Electron App)
+                const electron = (window as any).electronAPI;
+                if (electron && electron.performBackup) {
+                    try {
+                        const backupResult = await electron.performBackup();
+                        if (backupResult.success) {
+                            showNotification('Automatic backup completed', 'success');
+                        } else {
+                            console.error('Auto backup failed:', backupResult.error);
+                            showNotification('Automatic backup failed, but logging out...', 'warning');
+                        }
+                    } catch (backupErr) {
+                        console.error('Auto backup error:', backupErr);
+                    }
+                }
+
+                await axios.post('/api/auth/logout', {}, { withCredentials: true });
+                localStorage.removeItem('user'); // Clear any stored user signals
+                navigate('/login');
+            } catch (err) {
+                console.error('Logout failed:', err);
+                // Even if API fails, clear local session for safety
+                navigate('/login');
+            } finally {
+                setLoading(false);
+                closeConfirm();
+            }
+        });
+    };
+
+
     // --- Render ---
     return (
         <div className="admin-container">
@@ -1687,9 +2078,49 @@ const Admin = () => {
                     setQuickOrderInitialCustomer(null);
                     setQuickOrderSubscriptionToUpdate(null);
                 }}
+            // onLogout passed but ignored now
             />
 
-            <div key={view} className={`admin-main ${view}-mode fade-in-content`}>
+            <div key={view} className={`admin-main ${view}-mode fade-in-content`} style={{ position: 'relative' }}>
+
+                {/* Global Logout Button (Dashboard Only) */}
+                {view === 'dashboard' && (
+                    <button
+                        onClick={handleLogout}
+                        style={{
+                            position: 'absolute',
+                            top: '1.5rem',
+                            right: '2rem',
+                            zIndex: 100,
+                            background: 'rgba(255, 255, 255, 0.15)',
+                            backdropFilter: 'blur(8px)',
+                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                            borderRadius: '50%',
+                            width: '40px',
+                            height: '40px',
+                            padding: 0,
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            color: '#ffffff',
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                            transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-1px)';
+                            e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.1)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'none';
+                            e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+                        }}
+                        title="Sign Out"
+                    >
+                        <MdExitToApp size={20} />
+                    </button>
+                )}
+
                 {view === 'dashboard' && <DashboardStats stats={stats} onAnalyticsClick={() => setShowPasswordModal(true)} />}
 
                 {view === 'analytics' && (
@@ -1735,6 +2166,7 @@ const Admin = () => {
                         setCustomerFilterType={setCustomerFilterType}
                         onAddCustomer={openCreateCustomer}
                         onOpenDetails={openCustomerDetails}
+                        onImport={() => handleOpenImport('customers')}
                     />
                 )}
 
@@ -1751,6 +2183,7 @@ const Admin = () => {
                         onAddSubscription={openSubForm}
                         onOpenSubDetails={handleOpenSubDetails}
                         onRenewClick={handleRenewClick}
+                        onImport={() => handleOpenImport('subscriptions')}
                         globalStats={{
                             allSubscriptions: stats.allSubscriptions,
                             activeSubscriptions: stats.activeSubscriptions,
@@ -1818,9 +2251,11 @@ const Admin = () => {
                         onDownloadRealInvoice={downloadPDF}
                         onClientClick={openAdHistory}
                         onQuickUpdatePayment={quickUpdateAdPayment}
+                        onPartPayment={partPaymentAd}
                         adTypes={adTypes}
                         onAddCustomer={openAddAdCustomer}
                         allCustomers={customers}
+                        onImport={() => handleOpenImport('advertisements')}
                     />
                 )}
 
@@ -1869,7 +2304,35 @@ const Admin = () => {
                     />
                 )}
 
-
+                {/* Dashboard Watermark Footer */}
+                <div style={{
+                    marginTop: '5rem',
+                    padding: '3rem 0',
+                    borderTop: `1px solid ${view === 'dashboard' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)'}`,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontFamily: "'Plus Jakarta Sans', sans-serif"
+                }}>
+                    <div style={{
+                        fontSize: '10px',
+                        fontWeight: 500,
+                        color: view === 'dashboard' ? 'rgba(255,255,255,0.5)' : '#94a3b8',
+                        letterSpacing: '0.03em'
+                    }}>
+                        Copyright © 2026 <span style={{ color: view === 'dashboard' ? 'rgba(255,255,255,0.7)' : '#64748b', fontWeight: 600 }}>Magazine ERP</span>. All Rights Reserved.
+                    </div>
+                    <div style={{
+                        fontSize: '8.5px',
+                        fontWeight: 700,
+                        color: view === 'dashboard' ? 'rgba(255,255,255,0.3)' : '#cbd5e1',
+                        letterSpacing: '0.2em',
+                        textTransform: 'uppercase'
+                    }}>
+                        DEVELOPED BY <span style={{ color: view === 'dashboard' ? 'rgba(147, 197, 253, 0.5)' : '#93c5fd' }}>KCT WEB TEAM</span>
+                    </div>
+                </div>
             </div>
 
             {/* Modals */}
@@ -1885,6 +2348,7 @@ const Admin = () => {
                         onDelete={deleteCustomer}
                         onEditSubscriptionDate={handleEditSubscriptionDate}
                         onOpenSubDetails={handleOpenSubDetails}
+                        onDeleteSubscription={deleteSubscription}
                     />
                 )
             }
@@ -1906,13 +2370,19 @@ const Admin = () => {
             {
                 showSubForm && (
                     <SubscriptionFormModal
+                        editMode={subEditMode}
                         formData={subForm}
                         setFormData={setSubForm}
                         customers={customers}
                         magazines={magazines}
                         memberTypes={memberTypes} // New Prop
                         onSubmit={handleSubSubmit}
-                        onClose={() => setShowSubForm(false)}
+                        onClose={() => {
+                            setShowSubForm(false);
+                            setSubEditMode(false);
+                            setSubEditId('');
+                            setPendingSubEditPayload(null);
+                        }}
                     />
                 )
             }
@@ -2054,6 +2524,28 @@ const Admin = () => {
                 message="Please enter the **Admin Action Password** to delete this customer."
             />
 
+            <PasswordPromptModal
+                isOpen={showAdEditPasswordModal}
+                onClose={() => {
+                    setShowAdEditPasswordModal(false);
+                    setAdToEdit(null);
+                }}
+                onSuccess={handleAdEditPasswordSuccess}
+                title="Edit Advertisement - Authorization"
+                message="Please enter the **Admin Action Password** to edit this advertisement."
+            />
+
+            <PasswordPromptModal
+                isOpen={showSubEditPasswordModal}
+                onClose={() => {
+                    setShowSubEditPasswordModal(false);
+                    setPendingSubEditPayload(null);
+                }}
+                onSuccess={handleSubscriptionEditPasswordSuccess}
+                title="Edit Subscription - Authorization"
+                message="Please enter the **Admin Action Password** to edit this subscription."
+            />
+
             {
                 showEditDateModal && subscriptionToEdit && (
                     <EditSubscriptionDateModal
@@ -2091,11 +2583,19 @@ const Admin = () => {
                         onEditSubscription={(sub) => {
                             setShowSubDetailModal(false);
                             setSelectedSubscriptionForModal(null);
-                            handleRenewClick(sub);
+                            openEditSubscriptionForm(sub);
                         }}
                     />
                 )
             }
+            {showImportModal && (
+                <ImportModal 
+                    isOpen={showImportModal}
+                    onClose={() => setShowImportModal(false)}
+                    type={importType}
+                    onSuccess={handleImportSuccess}
+                />
+            )}
         </div >
     );
 };

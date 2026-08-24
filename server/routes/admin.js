@@ -28,7 +28,14 @@ router.post('/auto-backup', (req, res, next) => {
 }, async (req, res) => {
     try {
         const data = {
+            metadata: {
+                backupDate: new Date().toISOString(),
+                version: '1.3',
+                source: 'MagZone ERP System',
+                author: 'Administrator'
+            },
             users: await User.find({ role: { $ne: 'admin' } }).lean(),
+            admins: await Admin.find({}).lean(), // Now including admins in backup
             subscriptions: await Subscription.find({}).lean(),
             invoices: await Invoice.find({}).lean(),
             magazines: await Magazine.find({}).lean(),
@@ -37,9 +44,7 @@ router.post('/auto-backup', (req, res, next) => {
             advertisements: await Advertisement.find({}).lean(),
             purchaseEntries: await PurchaseEntry.find({}).lean(),
             inventory: await Inventory.find({}).lean(),
-            courierEntries: await CourierEntry.find({}).lean(),
-            backupDate: new Date().toISOString(),
-            version: '1.2'
+            courierEntries: await CourierEntry.find({}).lean()
         };
         res.json(data);
     } catch (err) {
@@ -51,8 +56,6 @@ router.use(verifyToken);
 router.use(requireRole('admin'));
 
 // Verify Analytics Password
-
-
 // Analytics endpoint
 router.get('/analytics', async (req, res) => {
     try {
@@ -475,7 +478,14 @@ router.delete('/reset-database', async (req, res) => {
 router.get('/export-database', async (req, res) => {
     try {
         const data = {
+            metadata: {
+                backupDate: new Date().toISOString(),
+                version: '1.3',
+                source: 'MagZone ERP System',
+                author: req.user ? 'Admin Session' : 'Manual Trigger'
+            },
             users: await User.find({ role: { $ne: 'admin' } }).lean(),
+            admins: await Admin.find({}).lean(),
             subscriptions: await Subscription.find({}).lean(),
             invoices: await Invoice.find({}).lean(),
             magazines: await Magazine.find({}).lean(),
@@ -499,7 +509,20 @@ router.post('/import-database', async (req, res) => {
         const { data } = req.body;
         if (!data) return res.status(400).json({ message: 'No data provided' });
 
-        // Clear existing data first
+        // Basic validation of the backup file
+        if (!data.users || !data.subscriptions || !data.invoices) {
+            return res.status(400).json({ message: 'Invalid backup file format: Missing critical data collections.' });
+        }
+
+        // Check metadata if exists (for newer backups)
+        if (data.metadata && data.metadata.source !== 'MagZone ERP System') {
+            return res.status(400).json({ message: 'Invalid backup file: Source mismatch.' });
+        }
+
+        // Use a session if available for atomicity (requires replica set)
+        // Since we likely don't have a replica set, we'll do sequential deletion and insertion.
+        
+        // Clear existing data EXCEPT ADMINS
         const collections = [
             { model: User, name: 'Users', query: { role: { $ne: 'admin' } } },
             { model: Subscription, name: 'Subscriptions' },
@@ -513,37 +536,69 @@ router.post('/import-database', async (req, res) => {
             { model: CourierEntry, name: 'CourierEntries' }
         ];
 
+        // Perform deletions
         for (const col of collections) {
             await col.model.deleteMany(col.query || {});
         }
 
-        // Import new data
+        // Import Users (preserving IDs)
         if (data.users && data.users.length > 0) {
             const importUsers = data.users.filter(u => u.role !== 'admin');
-            if (importUsers.length > 0) await User.insertMany(importUsers);
+            if (importUsers.length > 0) {
+                try {
+                    await User.insertMany(importUsers, { ordered: false });
+                } catch (userErr) {
+                    console.error('Some users failed to import:', userErr.message);
+                }
+            }
         }
 
+        // Import Other Collections (preserving IDs)
         const otherCollections = [
-            { key: 'subscriptions', model: Subscription, name: 'Subscriptions' },
-            { key: 'invoices', model: Invoice, name: 'Invoices' },
-            { key: 'magazines', model: Magazine, name: 'Magazines' },
-            { key: 'memberTypes', model: MemberType, name: 'MemberTypes' },
-            { key: 'adTypes', model: AdType, name: 'AdTypes' },
-            { key: 'advertisements', model: Advertisement, name: 'Advertisements' },
-            { key: 'purchaseEntries', model: PurchaseEntry, name: 'PurchaseEntries' },
-            { key: 'inventory', model: Inventory, name: 'Inventory' },
-            { key: 'courierEntries', model: CourierEntry, name: 'CourierEntries' }
+            { key: 'subscriptions', model: Subscription },
+            { key: 'invoices', model: Invoice },
+            { key: 'magazines', model: Magazine },
+            { key: 'memberTypes', model: MemberType },
+            { key: 'adTypes', model: AdType },
+            { key: 'advertisements', model: Advertisement },
+            { key: 'purchaseEntries', model: PurchaseEntry },
+            { key: 'inventory', model: Inventory },
+            { key: 'courierEntries', model: CourierEntry }
         ];
 
         for (const col of otherCollections) {
             const records = data[col.key];
             if (records && records.length > 0) {
-                await col.model.insertMany(records);
+                try {
+                    await col.model.insertMany(records, { ordered: false });
+                } catch (collErr) {
+                    console.error(`Some records in ${col.key} failed to import:`, collErr.message);
+                }
             }
         }
 
-        res.json({ message: 'Data imported successfully' });
+        // Special handling for Admins collection
+        // ONLY import admins if the current Admin collection is empty or if specifically needed.
+        // For now, we'll only import admins if they don't already exist by username.
+        if (data.admins && data.admins.length > 0) {
+            for (const adminData of data.admins) {
+                const existing = await Admin.findOne({ username: adminData.username });
+                if (!existing) {
+                    try {
+                        await Admin.create(adminData);
+                    } catch (adminErr) {
+                        console.error('Failed to import admin:', adminData.username, adminErr.message);
+                    }
+                }
+            }
+        }
+
+        res.json({ 
+            message: 'Database restored successfully', 
+            details: 'Existing data was cleared and replaced with backup data. Admin accounts were preserved.' 
+        });
     } catch (err) {
+        console.error('CRITICAL IMPORT FAILURE:', err);
         res.status(500).json({ message: 'Import failed: ' + err.message });
     }
 });
@@ -618,6 +673,22 @@ router.get('/customers/:id/ad-history', async (req, res) => {
 });
 
 // --- Helpers ---
+const parseExcelDate = (val) => {
+    if (!val) return null;
+    if (val instanceof Date) return val;
+    if (typeof val === 'string') {
+        const parts = val.split(/[\/\-]/);
+        if (parts.length === 3) {
+            // Assume DD/MM/YYYY
+            const d = parseInt(parts[0]);
+            const m = parseInt(parts[1]) - 1;
+            const y = parseInt(parts[2]);
+            if (y > 1000) return new Date(y, m, d);
+        }
+    }
+    return new Date(val);
+};
+
 const generateInvoiceNumber = async (prefix = 'INV') => {
     const lastInv = await Invoice.findOne({ invoiceNumber: new RegExp(`^${prefix}-[0-9]+`) }, { invoiceNumber: 1 }).sort({ invoiceNumber: -1 });
     let nextNum = 1;
@@ -768,7 +839,8 @@ router.post('/subscriptions', async (req, res) => {
         await sub.save();
 
         // Create Invoice
-        const invNo = await generateInvoiceNumber();
+        const prefix = (paymentMethod === 'Cash') ? 'C' : 'B';
+        const invNo = await generateInvoiceNumber(prefix);
         let amount = mType ? mType.price : 0;
 
         const invoice = new Invoice({
@@ -844,7 +916,8 @@ router.post('/subscriptions/renew', async (req, res) => {
         await newSub.save();
 
         // Create new invoice for renewal
-        const invNo = await generateInvoiceNumber();
+        const prefix = (paymentMethod === 'Cash') ? 'C' : 'B';
+        const invNo = await generateInvoiceNumber(prefix);
         const invoice = new Invoice({
             userId: existingSub.userId,
             subscriptionId: newSub._id, // Link to the NEW subscription
@@ -879,6 +952,123 @@ router.post('/subscriptions/renew', async (req, res) => {
         res.json({ subscription: populatedSub, invoice: populatedInvoice });
     } catch (err) {
         res.status(400).json({ message: err.message });
+    }
+});
+
+// Edit existing subscription details
+router.put('/subscriptions/:id', async (req, res) => {
+    try {
+        const { userId, memberTypeId, startDate, endDate, paymentMethod, referenceNo, tempReceiptNo, password } = req.body;
+
+        if (!password) {
+            return res.status(400).json({ message: 'Admin password required' });
+        }
+
+        // Verify admin action password
+        const admin = await Admin.findById(req.user._id);
+        if (!admin) {
+            return res.status(403).json({ message: 'Access denied' });
+        }
+
+        const requiredActionPassword = process.env.ADMIN_ACTION_PASSWORD;
+        if (!requiredActionPassword || password !== requiredActionPassword) {
+            return res.status(401).json({ message: 'Invalid admin action password' });
+        }
+
+        const sub = await Subscription.findById(req.params.id);
+        if (!sub) {
+            return res.status(404).json({ message: 'Subscription not found' });
+        }
+
+        let selectedMemberType = null;
+        const previousMemberTypeId = sub.memberTypeId ? sub.memberTypeId.toString() : '';
+        if (memberTypeId) {
+            selectedMemberType = await MemberType.findById(memberTypeId);
+            if (!selectedMemberType) {
+                return res.status(404).json({ message: 'Member type not found' });
+            }
+            sub.memberTypeId = memberTypeId;
+
+            // If plan changes, regenerate subscription id with the correct plan prefix.
+            if (previousMemberTypeId && previousMemberTypeId !== memberTypeId.toString()) {
+                sub.subscriptionId = await generateSubscriptionId(selectedMemberType.letter || 'SUB');
+            }
+        }
+
+        if (userId) sub.userId = userId;
+        if (startDate) sub.startDate = new Date(startDate);
+        if (endDate) sub.endDate = new Date(endDate);
+
+        if (typeof paymentMethod === 'string') {
+            sub.paymentMethod = paymentMethod;
+            sub.status = paymentMethod ? 'Active' : 'Pending';
+        }
+
+        if (typeof referenceNo === 'string') sub.referenceNo = referenceNo;
+        if (typeof tempReceiptNo === 'string') sub.tempReceiptNo = tempReceiptNo;
+
+        await sub.save();
+
+        // Keep associated invoices in sync without affecting other subscriptions.
+        const invoice = await Invoice.findOne({ subscriptionId: sub._id }).sort({ createdAt: -1 });
+        let updatedInvoice = null;
+
+        if (invoice) {
+            const invoiceUpdateFields = {};
+
+            if (startDate) invoiceUpdateFields.billingStart = new Date(startDate);
+            if (endDate) invoiceUpdateFields.billingEnd = new Date(endDate);
+
+            if (selectedMemberType) {
+                invoiceUpdateFields.amount = selectedMemberType.price || 0;
+                invoiceUpdateFields.items = [{ description: `Subscription - ${selectedMemberType.name}`, amount: selectedMemberType.price || 0 }];
+            }
+
+            if (typeof paymentMethod === 'string') {
+                const isPaid = paymentMethod && paymentMethod !== 'Credit Transaction';
+                invoiceUpdateFields.paymentMethod = paymentMethod;
+                invoiceUpdateFields.status = isPaid ? 'Paid' : 'Unpaid';
+                invoiceUpdateFields.paymentDate = isPaid ? new Date() : null;
+            }
+
+            if (typeof referenceNo === 'string') invoiceUpdateFields.referenceNo = referenceNo;
+            if (typeof tempReceiptNo === 'string') invoiceUpdateFields.tempReceiptNo = tempReceiptNo;
+
+            if (Object.keys(invoiceUpdateFields).length > 0) {
+                await Invoice.updateMany({ subscriptionId: sub._id }, { $set: invoiceUpdateFields });
+            }
+
+            updatedInvoice = await Invoice.findById(invoice._id)
+                .populate('userId')
+                .populate({
+                    path: 'subscriptionId',
+                    populate: { path: 'memberTypeId' }
+                });
+        }
+
+        const populatedSub = await Subscription.findById(sub._id)
+            .populate('userId')
+            .populate('memberTypeId');
+
+        res.json({ message: 'Subscription updated successfully', subscription: populatedSub, invoice: updatedInvoice });
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
+// Delete subscription
+router.delete('/subscriptions/:id', async (req, res) => {
+    try {
+        const sub = await Subscription.findById(req.params.id);
+        if (!sub) return res.status(404).json({ message: 'Subscription not found' });
+
+        // Delete associated invoice
+        await Invoice.deleteMany({ subscriptionId: sub._id });
+        await Subscription.findByIdAndDelete(req.params.id);
+
+        res.json({ message: 'Subscription and associated invoices deleted' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
     }
 });
 
@@ -1297,10 +1487,19 @@ router.get('/advertisements', async (req, res) => {
 
 router.post('/advertisements', async (req, res) => {
     try {
-        const { userId, clientName, adName, types, startDate, endDate, price, paymentMethod, referenceNo, tempReceiptNo } = req.body;
+        const { userId, clientName, adName, types, startDate, endDate, price, paymentMethod, referenceNo, tempReceiptNo, creditType, amountPaidNow, partPaymentDate, adminActionPassword, tdsAmount, typeAmounts } = req.body;
+
+        if (paymentMethod === 'Credit Transaction' || (tdsAmount && tdsAmount > 0)) {
+            const requiredActionPassword = process.env.ADMIN_ACTION_PASSWORD;
+            if (!requiredActionPassword || adminActionPassword !== requiredActionPassword) {
+                const trigger = (tdsAmount && tdsAmount > 0) ? 'TDS deduction' : 'credit transaction';
+                return res.status(401).json({ message: `Invalid admin action password for ${trigger}` });
+            }
+        }
 
         const ad = new Advertisement({
-            userId, clientName, adName, types, startDate, endDate, price, paymentMethod, referenceNo, tempReceiptNo
+            userId, clientName, adName, types, typeAmounts, startDate, endDate, price, paymentMethod, referenceNo, tempReceiptNo, creditType, amountPaidNow, tdsAmount: tdsAmount || 0,
+            partPaymentDate: creditType === 'Part Payment' ? (partPaymentDate || new Date()) : null
         });
         await ad.save();
 
@@ -1308,13 +1507,26 @@ router.post('/advertisements', async (req, res) => {
         // Use C for Cash, B for Other (Credit/Bank)
         const prefix = (paymentMethod === 'Cash') ? 'C' : 'B';
         const invNo = await generateInvoiceNumber(prefix);
+        // Generate Invoice Items based on typeAmounts if available
+        const invoiceItems = [];
+        if (typeAmounts && typeAmounts.length > 0) {
+            typeAmounts.forEach((ta) => {
+                invoiceItems.push({ description: `Advertisement: ${adName} - ${ta.name}`, amount: ta.amount });
+            });
+        } else {
+            invoiceItems.push({ description: `Advertisement: ${adName}${types && types.length > 0 ? `\nAd Type: ${types.join(', ')}` : ''}`, amount: price });
+        }
+        if (tdsAmount) {
+            invoiceItems.push({ description: 'TDS Deduction', amount: -tdsAmount });
+        }
+
         const invoice = new Invoice({
             userId,
             advertisementId: ad._id, // Link to the advertisement
             customerName: clientName, // Ensure name is stored if userId is missing or for reference
             invoiceNumber: invNo,
             category: 'Advertisement',
-            amount: price,
+            amount: price - (tdsAmount || 0),
             status: (paymentMethod && paymentMethod !== 'Credit Transaction') ? 'Paid' : 'Unpaid',
             dateIssued: new Date(),
             billingStart: startDate ? new Date(startDate) : new Date(),
@@ -1323,11 +1535,11 @@ router.post('/advertisements', async (req, res) => {
             paymentDate: (paymentMethod && paymentMethod !== 'Credit Transaction') ? new Date() : null,
             referenceNo: referenceNo || '',
             tempReceiptNo: tempReceiptNo || '',
-            items: [{ description: `Advertisement: ${adName}`, amount: price }]
+            items: invoiceItems
         });
         await invoice.save();
 
-        const populatedInvoice = await Invoice.findById(invoice._id).populate('userId');
+        const populatedInvoice = await Invoice.findById(invoice._id).populate('userId').populate('advertisementId');
         res.json({ advertisement: ad, invoice: populatedInvoice });
     } catch (err) {
         res.status(400).json({ message: err.message });
@@ -1336,30 +1548,104 @@ router.post('/advertisements', async (req, res) => {
 
 router.put('/advertisements/:id', async (req, res) => {
     try {
-        const { paymentMethod } = req.body;
+        const { paymentMethod, adminActionPassword, tdsAmount } = req.body;
+
         const oldAd = await Advertisement.findById(req.params.id);
         if (!oldAd) return res.status(404).json({ message: 'Advertisement not found' });
 
-        const ad = await Advertisement.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const isNewOrChangedCredit = paymentMethod === 'Credit Transaction' && oldAd.paymentMethod !== 'Credit Transaction';
+        const isNewOrChangedTds = (tdsAmount && tdsAmount > 0) && oldAd.tdsAmount !== tdsAmount;
 
-        let updatedInvoice = null;
-        // If payment was Credit and is now changed to something else, update associated Invoice
-        if (oldAd.paymentMethod === 'Credit Transaction' && paymentMethod && paymentMethod !== 'Credit Transaction') {
-            const invoice = await Invoice.findOne({
-                advertisementId: ad._id,
-                status: 'Unpaid'
-            }).sort({ createdAt: -1 });
+        if (isNewOrChangedCredit || isNewOrChangedTds) {
+            const requiredActionPassword = process.env.ADMIN_ACTION_PASSWORD;
+            if (!requiredActionPassword || adminActionPassword !== requiredActionPassword) {
+                const trigger = isNewOrChangedTds ? 'TDS deduction change' : 'credit transaction';
+                return res.status(401).json({ message: `Invalid admin action password for ${trigger}` });
+            }
+        }
 
-            if (invoice) {
-                invoice.status = 'Paid';
-                invoice.paymentMethod = paymentMethod;
-                invoice.paymentDate = new Date();
-                if (req.body.referenceNo) invoice.referenceNo = req.body.referenceNo;
-                if (req.body.tempReceiptNo) invoice.tempReceiptNo = req.body.tempReceiptNo;
-                updatedInvoice = await invoice.save();
+        const updateData = { ...req.body };
 
+        // Incremental part payments from the ads dashboard should add to the existing total.
+        if (req.body.amountPaidIncrement !== undefined) {
+            const increment = Number(req.body.amountPaidIncrement) || 0;
+            const currentPaid = Number(oldAd.amountPaidNow) || 0;
+            const adTotal = Math.max((Number(oldAd.price) || 0) - (Number(oldAd.tdsAmount) || 0), 0);
+            updateData.amountPaidNow = Math.min(currentPaid + increment, adTotal);
+            delete updateData.amountPaidIncrement;
+        }
+        
+        // Handle partPaymentDate logic
+        if (req.body.creditType === 'Part Payment' && oldAd.creditType !== 'Part Payment' && !req.body.partPaymentDate) {
+            updateData.partPaymentDate = new Date();
+        } else if (req.body.creditType === 'Full Credit' && req.body.paymentMethod === 'Credit Transaction') {
+            updateData.partPaymentDate = null;
+        }
+
+        // Handle paymentDate for repayment
+        if (req.body.paymentMethod && req.body.paymentMethod !== 'Credit Transaction' && oldAd.paymentMethod === 'Credit Transaction') {
+            updateData.paymentDate = new Date();
+        }
+
+        const ad = await Advertisement.findByIdAndUpdate(req.params.id, updateData, { new: true });
+
+        let updatedInvoice = await Invoice.findOne({ advertisementId: ad._id }).sort({ createdAt: -1 });
+
+        if (updatedInvoice) {
+            let invoiceChanged = false;
+
+            // Handle price, typeAmounts, or TDS updates
+            if (req.body.price !== undefined || req.body.tdsAmount !== undefined || req.body.adName !== undefined || req.body.typeAmounts !== undefined) {
+                const newPrice = ad.price || 0;
+                const newTds = ad.tdsAmount || 0;
+                updatedInvoice.amount = newPrice - newTds;
+                
+                const newItems = [];
+                if (ad.typeAmounts && ad.typeAmounts.length > 0) {
+                    ad.typeAmounts.forEach((ta) => {
+                        newItems.push({ description: `Advertisement: ${ad.adName} - ${ta.name}`, amount: ta.amount });
+                    });
+                } else {
+                    newItems.push({ description: `Advertisement: ${ad.adName}${ad.types && ad.types.length > 0 ? `\nAd Type: ${ad.types.join(', ')}` : ''}`, amount: newPrice });
+                }
+                if (newTds) {
+                    newItems.push({ description: 'TDS Deduction', amount: -newTds });
+                }
+                
+                updatedInvoice.items = newItems;
+                invoiceChanged = true;
+            }
+
+            // Handle credit specifics
+            if (req.body.creditType !== undefined || req.body.amountPaidNow !== undefined) {
+                invoiceChanged = true;
+            }
+
+            // Sync payment details
+            if (req.body.paymentMethod !== undefined || req.body.referenceNo !== undefined || req.body.tempReceiptNo !== undefined) {
+                if (req.body.paymentMethod) updatedInvoice.paymentMethod = req.body.paymentMethod;
+                if (req.body.referenceNo !== undefined) updatedInvoice.referenceNo = req.body.referenceNo;
+                if (req.body.tempReceiptNo !== undefined) updatedInvoice.tempReceiptNo = req.body.tempReceiptNo;
+
+                // Sync status based on paymentMethod
+                if (req.body.paymentMethod) {
+                    if (req.body.paymentMethod === 'Credit Transaction') {
+                        // If it's a credit transaction, it's Unpaid by default unless manually overridden in some other logic
+                        // But usually we want to keep it Unpaid.
+                        updatedInvoice.status = 'Unpaid';
+                        updatedInvoice.paymentDate = null;
+                    } else {
+                        updatedInvoice.status = 'Paid';
+                        if (!updatedInvoice.paymentDate) updatedInvoice.paymentDate = new Date();
+                    }
+                }
+                invoiceChanged = true;
+            }
+
+            if (invoiceChanged) {
+                await updatedInvoice.save();
                 // Populate for frontend
-                updatedInvoice = await Invoice.findById(updatedInvoice._id).populate('userId');
+                updatedInvoice = await Invoice.findById(updatedInvoice._id).populate('userId').populate('advertisementId');
             }
         }
 
@@ -1371,7 +1657,12 @@ router.put('/advertisements/:id', async (req, res) => {
 
 router.delete('/advertisements/:id', async (req, res) => {
     try {
-        await Advertisement.findByIdAndDelete(req.params.id);
+        const ad = await Advertisement.findByIdAndDelete(req.params.id);
+        if (!ad) {
+            return res.status(404).json({ message: 'Advertisement not found' });
+        }
+
+        await Invoice.deleteMany({ advertisementId: ad._id });
         res.json({ message: 'Advertisement deleted' });
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -1495,10 +1786,8 @@ router.delete('/customers/:id', async (req, res) => {
             return res.status(403).json({ message: 'Access denied' });
         }
 
-        let isValid = false;
-        isValid = await admin.compareActionPassword(password);
-
-        if (!isValid) {
+        const requiredActionPassword = process.env.ADMIN_ACTION_PASSWORD;
+        if (!requiredActionPassword || password !== requiredActionPassword) {
             return res.status(401).json({ message: 'Invalid admin action password' });
         }
 
@@ -1516,10 +1805,11 @@ router.delete('/customers/:id', async (req, res) => {
 // --- Invoices Management ---
 router.get('/invoices', async (req, res) => {
     try {
-        const { userId, customerName } = req.query;
+        const { userId, customerName, subscriptionId } = req.query;
         const query = {};
         if (userId) query.userId = userId;
         if (customerName) query.customerName = customerName;
+        if (subscriptionId) query.subscriptionId = subscriptionId;
 
         const invoices = await Invoice.find(query)
             .populate('userId')
@@ -1527,6 +1817,7 @@ router.get('/invoices', async (req, res) => {
                 path: 'subscriptionId',
                 populate: { path: 'memberTypeId' }
             })
+            .populate('advertisementId')
             .sort({ updatedAt: -1 });
         res.json(invoices);
     } catch (err) {
@@ -1548,7 +1839,8 @@ router.put('/invoices/:id', async (req, res) => {
             const updateFields = {
                 paymentMethod: invoice.paymentMethod || 'Paid (Direct Update)',
                 referenceNo: invoice.referenceNo || '',
-                tempReceiptNo: invoice.tempReceiptNo || ''
+                tempReceiptNo: invoice.tempReceiptNo || '',
+                paymentDate: new Date()
             };
 
             if (invoice.subscriptionId) {
@@ -1731,6 +2023,138 @@ router.get('/customers', async (req, res) => {
 });
 
 // --- Bulk Import ---
+router.post('/bulk-import-customers', async (req, res) => {
+    try {
+        const { records } = req.body;
+        let successCount = 0;
+        let errors = [];
+        const processedMobiles = new Set();
+
+        for (const rec of records) {
+            try {
+                // Map exported headers to model fields
+                const name = rec['Name'] || rec.name;
+                const mobile = rec['Mobile'] || rec.mobile || '';
+                const whatsapp = rec['WhatsApp'] || rec.whatsapp || mobile;
+                const customerType = rec['Customer Type'] || rec.customerType || 'Subscription';
+                const dispatchType = rec['Dispatch Preference'] || rec['Dispatch Type'] || rec.dispatchType || 'Post';
+                const street = rec['Street'] || rec.street || '';
+                const addressLine2 = rec['Landmark'] || rec.addressLine2 || '';
+                const taluk = rec['Taluk'] || rec.taluk || '';
+                const district = rec['District'] || rec.district || '';
+                const state = rec['State'] || rec.state || '';
+                const country = rec['Country'] || rec.country || 'India';
+                const pincode = rec['Pincode'] || rec.pincode || '';
+                const status = rec['Status'] || rec.status || 'New';
+
+                if (!name) throw new Error('Name is required.');
+                
+                // Check for duplicates
+                if (mobile) {
+                    const existingUser = await User.findOne({
+                        $or: [{ mobile: mobile }, { username: mobile }]
+                    });
+                    if (existingUser) throw new Error(`Customer with mobile ${mobile} already exists.`);
+                    if (processedMobiles.has(mobile)) throw new Error(`Duplicate mobile ${mobile} in file.`);
+                    processedMobiles.add(mobile);
+                }
+
+                const subscriberNo = await generateSubscriberNo(customerType === 'Advertisement' ? 'A' : 'C');
+                const user = new User({
+                    name,
+                    username: mobile || subscriberNo,
+                    password: 'welcome123',
+                    role: 'customer',
+                    address: { street, addressLine2, taluk, district, state, country, pincode },
+                    mobile,
+                    whatsapp,
+                    customerType,
+                    subscriberNo,
+                    dispatchType,
+                    status
+                });
+                await user.save();
+                successCount++;
+            } catch (e) {
+                errors.push({ user: rec['Name'] || rec.name || 'Unknown', message: e.message });
+            }
+        }
+        res.json({ successCount, errors });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+router.post('/bulk-import-ads', async (req, res) => {
+    try {
+        const { records } = req.body;
+        let successCount = 0;
+        let errors = [];
+
+        for (const rec of records) {
+            try {
+                const clientName = rec['Client Name'] || rec.clientName;
+                if (!clientName) throw new Error('Client Name is required.');
+                
+                const mobile = rec['Client Mobile'] || rec.mobile || '';
+                const adName = rec['Ad Name'] || rec.adName || 'Bulk Imported Ad';
+                const types = rec['Ad Types'] || rec.types;
+                const price = rec['Total Price'] || rec['Base Price'] || rec.price || 0;
+                const pageSize = rec['Page Size'] || rec.pageSize || 'Half';
+                const qty = rec['Qty'] || rec['Quantity'] || rec.qty || 1;
+                const paymentMethod = rec['Payment Method'] || rec.paymentMethod || 'Unpaid';
+                const status = rec['Payment Status'] || rec.status || 'Active';
+                const taluk = rec['Taluk'] || rec.taluk || '';
+                const district = rec['District'] || rec.district || '';
+
+                let user = null;
+                if (mobile) {
+                    user = await User.findOne({ mobile: mobile });
+                }
+
+                if (!user && mobile) {
+                    const subscriberNo = await generateSubscriberNo('A');
+                    user = new User({
+                        name: clientName,
+                        username: mobile || subscriberNo,
+                        password: 'welcome123',
+                        role: 'customer',
+                        mobile: mobile,
+                        whatsapp: rec['Client WhatsApp'] || rec.whatsapp || mobile,
+                        customerType: 'Advertisement',
+                        subscriberNo,
+                        address: { taluk, district }
+                    });
+                    await user.save();
+                }
+
+                const ad = new Advertisement({
+                    userId: user ? user._id : null,
+                    clientName,
+                    adName,
+                    types: types ? (Array.isArray(types) ? types : types.split(',').map(t => t.trim())) : [],
+                    price: parseFloat(price) || 0,
+                    startDate: parseExcelDate(rec['Start Date'] || rec.startDate) || new Date(),
+                    endDate: parseExcelDate(rec['End Date'] || rec.endDate) || new Date(),
+                    pageSize,
+                    qty: parseInt(qty) || 1,
+                    status,
+                    paymentMethod,
+                    referenceNo: rec['Ref No'] || rec.referenceNo || '',
+                    tempReceiptNo: rec['Receipt No'] || rec.tempReceiptNo || '',
+                });
+                await ad.save();
+                successCount++;
+            } catch (e) {
+                errors.push({ user: rec['Client Name'] || rec.clientName || 'Unknown', message: e.message });
+            }
+        }
+        res.json({ successCount, errors });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 router.post('/bulk-import', async (req, res) => {
     try {
         const { records } = req.body;
@@ -1744,51 +2168,53 @@ router.post('/bulk-import', async (req, res) => {
             let createdUser = null;
             let createdSub = null;
             try {
-                const plan = memberTypes.find(t => t.name.toLowerCase() === rec.planName.toLowerCase());
-                if (!plan) throw new Error(`Plan not found: ${rec.planName}`);
+                const planStr = rec['Plan'] || rec.planName;
+                if (!planStr) throw new Error('Plan name is required.');
 
-                const start = rec.startDate ? new Date(rec.startDate) : new Date();
+                const plan = memberTypes.find(t => t.name.toLowerCase() === planStr.toLowerCase());
+                if (!plan) throw new Error(`Plan not found: ${planStr}`);
+
+                const name = rec['Customer Name'] || rec.name;
+                const mobile = rec['Mobile'] || rec.mobile;
+                const whatsapp = rec['WhatsApp'] || rec.whatsapp || mobile;
+                const street = rec['Street'] || rec.street || '';
+                const taluk = rec['Taluk'] || rec.taluk || '';
+                const district = rec['District'] || rec.district || '';
+                const state = rec['State'] || rec.state || '';
+                const pincode = rec['Pincode'] || rec.pincode || '';
+                const paymentMethod = rec['Payment Method'] || rec.paymentMethod;
+                const status = rec['Status'] || rec.status;
+
+                let startStr = rec['Start Date'] || rec.startDate;
+                const start = parseExcelDate(startStr) || new Date();
                 const end = new Date(start);
 
-                // Check for duplicates in DB (Mobile/Username)
-                if (rec.mobile) {
+                if (mobile) {
                     const existingUser = await User.findOne({
-                        $or: [{ mobile: rec.mobile }, { username: rec.mobile }]
+                        $or: [{ mobile: mobile }, { username: mobile }]
                     });
                     if (existingUser) {
-                        throw new Error(`Duplicate: Customer with mobile ${rec.mobile} already exists.`);
+                        throw new Error(`Duplicate: Customer with mobile ${mobile} already exists.`);
                     }
+                    if (processedMobiles.has(mobile)) {
+                        throw new Error(`Duplicate in file: Mobile ${mobile} appears multiple times.`);
+                    }
+                    processedMobiles.add(mobile);
                 }
-
-                // Check for duplicates in the current uploaded batch to prevent race conditions or self-conflict
-                if (rec.mobile && processedMobiles.has(rec.mobile)) {
-                    throw new Error(`Duplicate in file: Mobile ${rec.mobile} appears multiple times.`);
-                }
-                if (rec.mobile) processedMobiles.add(rec.mobile);
 
                 const subscriberNo = await generateSubscriberNo('C');
 
                 const user = new User({
-                    name: rec.name,
-                    username: rec.mobile || subscriberNo,
+                    name,
+                    username: mobile || subscriberNo,
                     password: 'welcome123',
                     role: 'customer',
-                    address: {
-                        street: rec.street,
-                        addressLine2: rec.addressLine2,
-                        taluk: rec.taluk,
-                        district: rec.district,
-                        state: rec.state,
-                        country: rec.country || 'India',
-                        pincode: rec.pincode
-                    },
-                    mobile: rec.mobile,
-                    whatsapp: rec.whatsapp || rec.mobile,
-                    customerType: rec.customerType || 'Subscription',
+                    address: { street, taluk, district, state, pincode, country: 'India' },
+                    mobile,
+                    whatsapp,
+                    customerType: rec['Customer Type'] || rec.customerType || 'Subscription',
                     subscriberNo,
-                    dispatchType: rec.dispatchType || 'Post',
-                    createdAt: start, // Backdate user creation
-                    updatedAt: start
+                    dispatchType: rec['Dispatch Info'] || rec.dispatchType || 'Post'
                 });
                 createdUser = await user.save();
 
@@ -1802,29 +2228,26 @@ router.post('/bulk-import', async (req, res) => {
                     subscriptionId: subId,
                     startDate: start,
                     endDate: end,
-                    status: rec.paymentMethod ? 'Active' : 'Pending',
-                    referenceNo: rec.referenceNo,
-                    tempReceiptNo: rec.tempReceiptNo,
-                    createdAt: start, // Backdate subscription creation
-                    updatedAt: start
+                    status: status || (paymentMethod ? 'Active' : 'Pending'),
+                    referenceNo: rec['Ref No'] || rec.referenceNo,
+                    tempReceiptNo: rec['Receipt No'] || rec.tempReceiptNo || rec['Receipt No'],
                 });
                 createdSub = await sub.save();
 
-                const invNo = await generateInvoiceNumber();
+                const prefix = (paymentMethod === 'Cash') ? 'C' : 'B';
+                const invNo = await generateInvoiceNumber(prefix);
                 const invoice = new Invoice({
                     userId: user._id,
                     subscriptionId: sub._id,
                     invoiceNumber: invNo,
                     amount: plan.price,
-                    status: rec.paymentMethod ? 'Paid' : 'Unpaid',
-                    dateIssued: start, // Backdate invoice issuance
+                    status: (paymentMethod && paymentMethod !== 'Credit Transaction') ? 'Paid' : 'Unpaid',
+                    dateIssued: start, 
                     billingStart: start,
                     billingEnd: end,
-                    paymentMethod: rec.paymentMethod,
-                    paymentDate: rec.paymentMethod ? start : null, // Backdate payment date
-                    items: [{ description: `Subscription - ${plan.name}`, amount: plan.price }],
-                    createdAt: start, // Backdate invoice creation
-                    updatedAt: start
+                    paymentMethod: paymentMethod,
+                    paymentDate: (paymentMethod && paymentMethod !== 'Credit Transaction') ? start : null,
+                    items: [{ description: `Subscription - ${plan.name}`, amount: plan.price }]
                 });
                 await invoice.save();
 
@@ -1839,7 +2262,7 @@ router.post('/bulk-import', async (req, res) => {
                     const field = Object.keys(e.keyPattern)[0];
                     msg = `Duplicate found: A record with this ${field} already exists.`;
                 }
-                errors.push({ user: rec.name, message: msg });
+                errors.push({ user: rec['Customer Name'] || rec.name || 'Unknown', message: msg });
             }
         }
         res.json({ successCount, errors });
@@ -1851,7 +2274,7 @@ router.post('/bulk-import', async (req, res) => {
 // --- Revenue Report ---
 router.get('/revenue-report', async (req, res) => {
     try {
-        const { type, period, date, paymentMethod } = req.query;
+        const { type, period, date, paymentMethod, startDate: customStart, endDate: customEnd } = req.query;
 
         // Ensure date is valid
         const queryDate = date ? new Date(date) : new Date();
@@ -1859,7 +2282,12 @@ router.get('/revenue-report', async (req, res) => {
         let endDate = new Date(queryDate);
 
         // Set time range based on period
-        if (period === 'day') {
+        if (period === 'custom' && customStart && customEnd) {
+            startDate = new Date(customStart);
+            startDate.setHours(0, 0, 0, 0);
+            endDate = new Date(customEnd);
+            endDate.setHours(23, 59, 59, 999);
+        } else if (period === 'day') {
             startDate.setHours(0, 0, 0, 0);
             endDate.setHours(23, 59, 59, 999);
         } else if (period === 'month') {
@@ -1951,11 +2379,8 @@ router.post('/verify-analytics', async (req, res) => {
             return res.status(403).json({ success: false, message: 'Access denied' });
         }
 
-        let isValid = false;
-        // Check dynamic action password first
-        isValid = await admin.compareActionPassword(password);
-
-        if (isValid) {
+        const requiredActionPassword = process.env.ADMIN_ACTION_PASSWORD;
+        if (requiredActionPassword && password === requiredActionPassword) {
             res.json({ success: true });
         } else {
             res.status(401).json({ success: false, message: 'Invalid password' });
@@ -1978,10 +2403,8 @@ router.post('/verify-admin-password', async (req, res) => {
             return res.status(403).json({ success: false, message: 'Access denied' });
         }
 
-        let isValid = false;
-        isValid = await admin.compareActionPassword(password);
-
-        if (isValid) {
+        const requiredActionPassword = process.env.ADMIN_ACTION_PASSWORD;
+        if (requiredActionPassword && password === requiredActionPassword) {
             res.json({ success: true });
         } else {
             res.status(401).json({ success: false, message: 'Invalid admin action password' });
@@ -2006,10 +2429,8 @@ router.put('/subscriptions/:id/date', async (req, res) => {
             return res.status(403).json({ message: 'Access denied' });
         }
 
-        let isValid = false;
-        isValid = await admin.compareActionPassword(password);
-
-        if (!isValid) {
+        const requiredActionPassword = process.env.ADMIN_ACTION_PASSWORD;
+        if (!requiredActionPassword || password !== requiredActionPassword) {
             return res.status(401).json({ message: 'Invalid admin action password' });
         }
 
@@ -2120,12 +2541,9 @@ router.post('/change-action-password', async (req, res) => {
 
         if (!admin) return res.status(404).json({ message: 'Admin not found' });
 
-        // Check current action password
-        let isValid = false;
-        isValid = await admin.compareActionPassword(currentPassword);
-
-        if (!isValid) {
-            return res.status(400).json({ message: 'Incorrect current action password' });
+        const requiredActionPassword = process.env.ADMIN_ACTION_PASSWORD;
+        if (!requiredActionPassword || currentPassword !== requiredActionPassword) {
+            return res.status(400).json({ message: 'Incorrect current action password (ENV)' });
         }
 
         admin.actionPassword = newPassword;

@@ -7,8 +7,10 @@
     "scripts": {
         "start": "electron .",
         "build:client": "cd client && npm run build",
-        "dist": "npm run build:client && electron-builder",
-        "package:win": "npm run build:client && electron-packager . \"Aachi Vanthachu\" --platform=win32 --arch=x64 --out=dist-packager --overwrite --ignore=\"client/(src|public|node_modules)\" --ignore=\".git\" --ignore=\"dist\" --ignore=\"builder_cache\""
+        "dist": "npm run build:client && electron-builder --win nsis portable",
+        "dist:installer": "npm run build:client && electron-builder --win nsis",
+        "dist:portable": "npm run build:client && electron-builder --win portable",
+        "package:win": "npm run build:client && electron-packager . \"Aachi Vanthachu\" --platform=win32 --arch=x64 --out=dist-packager --overwrite --ignore=\"client/(src|public|node_modules)\" --ignore=\"^dist$\" --ignore=\"^dist-packager$\" --ignore=\"^builder_cache$\" --ignore=\"^\\.git$\" --ignore=\"^resources$\""
     },
     "devDependencies": {
         "electron": "^33.2.1",
@@ -16,13 +18,16 @@
         "electron-packager": "^17.1.2"
     },
     "dependencies": {
+        "axios": "^1.13.5",
+        "node-machine-id": "^1.1.12",
+        "pptxgenjs": "^4.0.1",
         "tree-kill": "^1.2.2"
     },
     "build": {
         "appId": "com.magazine.erp",
         "productName": "Aachi Vanthachu",
         "directories": {
-            "output": "dist"
+            "output": "release"
         },
         "files": [
             "electron/main.js",
@@ -40,6 +45,10 @@
                 ]
             },
             {
+                "from": "server/.env",
+                "to": "server/.env"
+            },
+            {
                 "from": "client/dist",
                 "to": "client/dist",
                 "filter": [
@@ -48,7 +57,11 @@
             }
         ],
         "win": {
-            "target": "nsis",
+            "icon": "electron/logo.png",
+            "target": [
+                "nsis",
+                "portable"
+            ],
             "forceCodeSigning": false
         }
     }

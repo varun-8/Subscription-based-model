@@ -26,7 +26,7 @@ export const DISTRICTS = [
     "TENKASI",
     "THANJAVUR",
     "THENI",
-    "THOOTHUKUDI (TUTICORIN)",
+    "THOOTHUKUDI",
     "TIRUCHIRAPPALLI",
     "TIRUNELVELI",
     "TIRUPATTUR",

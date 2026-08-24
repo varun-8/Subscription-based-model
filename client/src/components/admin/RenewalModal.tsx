@@ -1,5 +1,6 @@
 import React from 'react';
 import { MdClose } from 'react-icons/md';
+import './SubscriptionModals.css';
 
 interface RenewalModalProps {
     subscription: any;
@@ -25,46 +26,27 @@ const RenewalModal: React.FC<RenewalModalProps> = ({
         return date.toISOString().split('T')[0];
     };
 
+    const calculateStartDate = (end: string, planId: string) => {
+        if (!end || !planId) return formData.startDate;
+        const plan = memberTypes.find(t => t._id === planId);
+        if (!plan) return formData.startDate;
+
+        const date = new Date(end);
+        date.setDate(date.getDate() + 1);
+        date.setMonth(date.getMonth() - plan.durationInMonths);
+        return date.toISOString().split('T')[0];
+    };
+
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content modal-lg" onClick={e => e.stopPropagation()}>
-                <div className="modal-header" style={{
-                    background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-                    color: '#fff',
-                    padding: '1.25rem 1.5rem',
-                    borderBottom: 'none',
-                    position: 'relative',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
-                }}>
-                    <h3 className="modal-title" style={{ color: '#fff', fontWeight: 600, margin: 0 }}>
+            <div className="modal-content modal-lg sub-modal-shell" onClick={e => e.stopPropagation()}>
+                <div className="modal-header sub-modal-header">
+                    <h3 className="modal-title sub-modal-title">
                         Renew Subscription
                     </h3>
                     <button
                         onClick={onClose}
-                        style={{
-                            background: 'rgba(255,255,255,0.1)',
-                            border: 'none',
-                            borderRadius: '50%',
-                            width: '32px',
-                            height: '32px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            color: 'white',
-                            transition: 'all 0.2s ease',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.background = '#ef4444';
-                            e.currentTarget.style.transform = 'rotate(90deg)';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
-                            e.currentTarget.style.transform = 'rotate(0deg)';
-                        }}
+                        className="sub-modal-close"
                     >
                         <MdClose size={18} />
                     </button>
@@ -73,15 +55,15 @@ const RenewalModal: React.FC<RenewalModalProps> = ({
                 <div className="modal-body">
                     <form onSubmit={onSubmit}>
                         {/* Customer Information - Read Only */}
-                        <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '1.5rem' }}>
-                            <h4 style={{ margin: '0 0 0.5rem 0', color: '#64748b', fontSize: '0.85rem', textTransform: 'uppercase' }}>Customer Details</h4>
-                            <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '1rem' }}>{subscription.userId?.name}</div>
-                            <div style={{ fontSize: '0.9rem', color: '#334155', marginTop: '0.25rem' }}>
+                        <div className="sub-info-card">
+                            <h4 className="sub-info-title">Customer Details</h4>
+                            <div className="sub-info-name">{subscription.userId?.name}</div>
+                            <div className="sub-info-meta">
                                 {subscription.userId?.subscriberNo && <span style={{ marginRight: '1rem', fontFamily: 'monospace' }}>#{subscription.userId.subscriberNo}</span>}
                                 {subscription.userId?.mobile && <span>📞 {subscription.userId.mobile}</span>}
                             </div>
                             {subscription.userId?.address && (
-                                <div style={{ fontSize: '0.9rem', color: '#64748b', marginTop: '0.25rem' }}>
+                                <div className="sub-info-address">
                                     {typeof subscription.userId.address === 'object' ?
                                         `${subscription.userId.address.street || ''}, ${subscription.userId.address.district || ''}` :
                                         subscription.userId.address}
@@ -90,33 +72,33 @@ const RenewalModal: React.FC<RenewalModalProps> = ({
                         </div>
 
                         {/* Current Subscription Info */}
-                        <div style={{ background: '#fef3c7', padding: '1rem', borderRadius: '8px', border: '1px solid #f59e0b', marginBottom: '1.5rem' }}>
-                            <h4 style={{ margin: '0 0 0.5rem 0', color: '#92400e', fontSize: '0.85rem', textTransform: 'uppercase' }}>Current Subscription</h4>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                        <div className="sub-current-card">
+                            <h4 className="sub-current-title">Current Subscription</h4>
+                            <div className="sub-current-grid">
                                 <div>
-                                    <div style={{ fontSize: '0.8rem', color: '#92400e', fontWeight: 600 }}>Current Plan</div>
-                                    <div style={{ fontWeight: 600, color: '#0f172a' }}>{subscription.memberTypeId?.name}</div>
+                                    <div className="sub-current-label">Current Plan</div>
+                                    <div className="sub-current-value">{subscription.memberTypeId?.name}</div>
                                 </div>
                                 <div>
-                                    <div style={{ fontSize: '0.8rem', color: '#92400e', fontWeight: 600 }}>Expires On</div>
-                                    <div style={{ fontWeight: 600, color: '#0f172a' }}>{new Date(subscription.endDate).toLocaleDateString('en-GB')}</div>
+                                    <div className="sub-current-label">Expires On</div>
+                                    <div className="sub-current-value">{new Date(subscription.endDate).toLocaleDateString('en-GB')}</div>
                                 </div>
                                 <div>
-                                    <div style={{ fontSize: '0.8rem', color: '#92400e', fontWeight: 600 }}>Status</div>
+                                    <div className="sub-current-label">Status</div>
                                     {new Date(subscription.endDate).getTime() >= new Date().setHours(0, 0, 0, 0) ? (
-                                        <div style={{ fontWeight: 600, color: '#10b981' }}>Active</div>
+                                        <div className="sub-status-ok">Active</div>
                                     ) : (
-                                        <div style={{ fontWeight: 600, color: '#dc2626' }}>Expired</div>
+                                        <div className="sub-status-expired">Expired</div>
                                     )}
                                 </div>
                             </div>
                         </div>
 
                         {/* Renewal Options */}
-                        <div style={{ border: '1px solid #e2e8f0', padding: '1.25rem', borderRadius: '8px', marginBottom: '1.5rem' }}>
-                            <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a', fontSize: '1rem' }}>Renewal Options</h4>
+                        <div className="sub-options-card">
+                            <h4 className="sub-options-title">Renewal Options</h4>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                            <div className="sub-options-grid">
                                 <div className="form-group" style={{ marginBottom: 0 }}>
                                     <label className="form-label">New Membership Plan</label>
                                     <select
@@ -154,12 +136,16 @@ const RenewalModal: React.FC<RenewalModalProps> = ({
                                 </div>
 
                                 <div className="form-group" style={{ marginBottom: 0 }}>
-                                    <label className="form-label">End Date (Auto)</label>
+                                    <label className="form-label">End Date</label>
                                     <input
                                         type="date"
                                         className="form-input"
                                         value={formData.endDate || ''}
-                                        onChange={e => setFormData({ ...formData, endDate: e.target.value })}
+                                        onChange={e => {
+                                            const newEnd = e.target.value;
+                                            const newStart = calculateStartDate(newEnd, formData.memberTypeId);
+                                            setFormData({ ...formData, endDate: newEnd, startDate: newStart });
+                                        }}
                                         required
                                     />
                                 </div>
@@ -178,30 +164,31 @@ const RenewalModal: React.FC<RenewalModalProps> = ({
                                                 setFormData({ ...formData, paymentMethod: val });
                                             }}
                                             required
-                                            style={{ flex: 1 }}
+                                            style={{ color: formData.paymentMethod ? '#1e293b' : '#94a3b8', flex: 1 }}
                                         >
-                                            <option value="">Select Payment Status</option>
-                                            <option value="Cash">Paid - Cash</option>
-                                            <option value="GPay">Paid - GPay</option>
-                                            <option value="Account Transfer">Paid - Account Transfer</option>
-                                            <option value="Money Order">Paid - Money Order</option>
+                                            <option value="" style={{ color: '#94a3b8' }}>Select Payment Status</option>
+                                            <option value="Cash">Cash</option>
+                                            <option value="GPay">GPay</option>
+                                            <option value="Account Transfer">Account Transfer</option>
+                                            <option value="Money Order">Money Order</option>
                                             <option value="Credit Transaction">Credit Transaction</option>
                                         </select>
                                         {(formData.paymentMethod && formData.paymentMethod.startsWith('Account Transfer')) && (
                                             <select
                                                 className="form-input"
-                                                value={formData.paymentMethod.includes('-') ? formData.paymentMethod.split(' - ')[1] : ''}
+                                                value={formData.paymentMethod.includes('Account Transfer - ') ? formData.paymentMethod.replace('Account Transfer - ', '') : ''}
                                                 onChange={e => {
                                                     const subMode = e.target.value;
                                                     setFormData({ ...formData, paymentMethod: `Account Transfer - ${subMode}` });
                                                 }}
                                                 required
-                                                style={{ flex: 1 }}
+                                                style={{ flex: 1, color: '#1e293b' }}
                                             >
                                                 <option value="">Select Mode</option>
                                                 <option value="Cash">Cash</option>
                                                 <option value="Cheque">Cheque</option>
                                                 <option value="NEFT">NEFT</option>
+                                                <option value="GPay - N Palaniappan">GPay - N Palaniappan</option>
                                             </select>
                                         )}
                                     </div>

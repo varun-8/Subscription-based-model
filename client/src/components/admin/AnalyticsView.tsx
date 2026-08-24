@@ -58,8 +58,10 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({ showNotification, onAdCus
     const [timeRange, setTimeRange] = useState('30d');
     const [showReportModal, setShowReportModal] = useState(false);
     const [reportType, setReportType] = useState('subscription');
-    const [reportPeriod, setReportPeriod] = useState('day');
-    const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0]);
+    const [reportPeriod] = useState('custom');
+    const [reportDate] = useState(new Date().toISOString().split('T')[0]);
+    const [customStartDate, setCustomStartDate] = useState('');
+    const [customEndDate, setCustomEndDate] = useState('');
     const [subPaymentMethod, setSubPaymentMethod] = useState('');
     const [reportLoading, setReportLoading] = useState(false);
     const [showSecurityModal, setShowSecurityModal] = useState(false);
@@ -261,6 +263,17 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({ showNotification, onAdCus
                 period: reportPeriod,
                 date: reportDate,
             });
+
+            if (reportPeriod === 'custom') {
+                if (!customStartDate || !customEndDate) {
+                    showNotification('Please select both start and end dates', 'warning');
+                    setReportLoading(false);
+                    return;
+                }
+                params.append('startDate', customStartDate);
+                params.append('endDate', customEndDate);
+            }
+
             if (reportType === 'subscription' && subPaymentMethod) {
                 params.append('paymentMethod', subPaymentMethod);
             }
@@ -422,6 +435,11 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({ showNotification, onAdCus
             if (reportPeriod === 'day') dateStr = d.toLocaleDateString();
             else if (reportPeriod === 'month') dateStr = d.toLocaleDateString('default', { month: 'long', year: 'numeric' });
             else if (reportPeriod === 'year') dateStr = d.getFullYear().toString();
+            else if (reportPeriod === 'custom') {
+                const start = new Date(meta.startDate).toLocaleDateString();
+                const end = new Date(meta.endDate).toLocaleDateString();
+                dateStr = `${start} - ${end}`;
+            }
 
             // Left Col (Meta)
             doc.setFontSize(9);
@@ -562,8 +580,36 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({ showNotification, onAdCus
                 }
             });
 
-            doc.save(`Revenue_Audit_${reportType}_${new Date().toISOString().slice(0, 10)}.pdf`);
-            showNotification('Audit Report downloaded successfully', 'success');
+            const fileName = `Revenue_Audit_${reportType}_${new Date().toISOString().slice(0, 10)}.pdf`;
+
+            try {
+                // Check if File System Access API is supported
+                if ('showSaveFilePicker' in window) {
+                    const handle = await (window as any).showSaveFilePicker({
+                        suggestedName: fileName,
+                        types: [{
+                            description: 'PDF Document',
+                            accept: { 'application/pdf': ['.pdf'] },
+                        }],
+                    });
+                    const writable = await handle.createWritable();
+                    const pdfBlob = doc.output('blob');
+                    await writable.write(pdfBlob);
+                    await writable.close();
+                    showNotification('Report saved successfully', 'success');
+                } else {
+                    // Fallback for browsers that don't support the API
+                    doc.save(fileName);
+                    showNotification('Audit Report downloaded successfully', 'success');
+                }
+            } catch (err: any) {
+                // Ignore AbortError (user cancelled), fallback for others
+                if (err.name !== 'AbortError') {
+                    console.error('File save error:', err);
+                    doc.save(fileName);
+                    showNotification('Audit Report downloaded successfully', 'success');
+                }
+            }
             setShowReportModal(false);
 
             /* Old Table
@@ -1736,114 +1782,17 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({ showNotification, onAdCus
                                 </div>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: '#475569' }}>
-                                        Period
-                                    </label>
-                                    <select
-                                        value={reportPeriod}
-                                        onChange={(e) => setReportPeriod(e.target.value)}
-                                        style={{
-                                            width: '100%',
-                                            padding: '0.75rem',
-                                            border: '1px solid #e2e8f0',
-                                            borderRadius: '8px',
-                                            background: '#f8fafc',
-                                            color: '#1e293b'
-                                        }}
-                                    >
-                                        <option value="day">Daily</option>
-                                        <option value="month">Monthly</option>
-                                        <option value="year">Yearly</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: '#475569' }}>
-                                        {reportPeriod === 'year' ? 'Year' : reportPeriod === 'month' ? 'Select Month & Year' : 'Date'}
-                                    </label>
-                                    {reportPeriod === 'year' ? (
-                                        <select
-                                            value={new Date(reportDate).getFullYear()}
-                                            onChange={(e) => {
-                                                const d = new Date(reportDate);
-                                                d.setFullYear(parseInt(e.target.value));
-                                                setReportDate(d.toISOString().split('T')[0]);
-                                            }}
-                                            style={{
-                                                width: '100%',
-                                                padding: '0.75rem',
-                                                border: '1px solid #e2e8f0',
-                                                borderRadius: '8px',
-                                                background: '#f8fafc',
-                                                color: '#1e293b'
-                                            }}
-                                        >
-                                            {Array.from({ length: 15 }, (_, i) => {
-                                                const year = 2024 + i;
-                                                return (
-                                                    <option key={year} value={year}>
-                                                        {year}
-                                                    </option>
-                                                );
-                                            })}
-                                        </select>
-                                    ) : reportPeriod === 'month' ? (
-                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                            <select
-                                                value={new Date(reportDate).getMonth()}
-                                                onChange={(e) => {
-                                                    const d = new Date(reportDate);
-                                                    d.setMonth(parseInt(e.target.value));
-                                                    setReportDate(d.toISOString().split('T')[0]);
-                                                }}
-                                                style={{
-                                                    flex: 1,
-                                                    padding: '0.75rem',
-                                                    border: '1px solid #e2e8f0',
-                                                    borderRadius: '8px',
-                                                    background: '#f8fafc',
-                                                    color: '#1e293b'
-                                                }}
-                                            >
-                                                {Array.from({ length: 12 }, (_, i) => (
-                                                    <option key={i} value={i}>
-                                                        {new Date(0, i).toLocaleString('default', { month: 'long' })}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            <select
-                                                value={new Date(reportDate).getFullYear()}
-                                                onChange={(e) => {
-                                                    const d = new Date(reportDate);
-                                                    d.setFullYear(parseInt(e.target.value));
-                                                    setReportDate(d.toISOString().split('T')[0]);
-                                                }}
-                                                style={{
-                                                    width: '100px',
-                                                    padding: '0.75rem',
-                                                    border: '1px solid #e2e8f0',
-                                                    borderRadius: '8px',
-                                                    background: '#f8fafc',
-                                                    color: '#1e293b'
-                                                }}
-                                            >
-                                                {Array.from({ length: 15 }, (_, i) => {
-                                                    const year = 2024 + i;
-                                                    return (
-                                                        <option key={year} value={year}>
-                                                            {year}
-                                                        </option>
-                                                    );
-                                                })}
-                                            </select>
-                                        </div>
-                                    ) : (
+                            <div style={{ marginBottom: '1rem' }}>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: '#475569' }}>
+                                    Date Range
+                                </label>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <div style={{ flex: 1 }}>
                                         <input
                                             type="date"
-                                            value={reportDate}
-                                            onChange={(e) => setReportDate(e.target.value)}
+                                            value={customStartDate}
+                                            onChange={(e) => setCustomStartDate(e.target.value)}
+                                            placeholder="From Date"
                                             style={{
                                                 width: '100%',
                                                 padding: '0.75rem',
@@ -1856,7 +1805,26 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({ showNotification, onAdCus
                                                 (e.target as HTMLInputElement).showPicker();
                                             }}
                                         />
-                                    )}
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <input
+                                            type="date"
+                                            value={customEndDate}
+                                            onChange={(e) => setCustomEndDate(e.target.value)}
+                                            placeholder="To Date"
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.75rem',
+                                                border: '1px solid #e2e8f0',
+                                                borderRadius: '8px',
+                                                background: '#f8fafc',
+                                                color: '#1e293b'
+                                            }}
+                                            onClick={(e) => {
+                                                (e.target as HTMLInputElement).showPicker();
+                                            }}
+                                        />
+                                    </div>
                                 </div>
                             </div>
 

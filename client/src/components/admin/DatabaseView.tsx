@@ -33,7 +33,21 @@ const DatabaseView: React.FC<DatabaseViewProps> = ({ showNotification, openConfi
             }
         };
         fetchBackupState();
-    }, []);
+
+        // Listen for background backup events
+        if (window.electronAPI && window.electronAPI.onBackupInfo) {
+            window.electronAPI.onBackupInfo((info: any) => {
+                if (info.success) {
+                    setLastBackupDate(info.date);
+                    // Only show notification if we are not currently in the middle of a manual backup 
+                    // (to avoid double notifications)
+                    if (!loading) {
+                        showNotification(`System Auto-Backup Successful`, 'success');
+                    }
+                }
+            });
+        }
+    }, [loading, showNotification]);
 
     const handleSelectPath = async () => {
         if (window.electronAPI && window.electronAPI.selectBackupPath) {

@@ -1,0 +1,909 @@
+/* ========================================
+   SUBSCRIPTIONS VIEW - PROFESSIONAL DESIGN
+   ======================================== */
+
+:root {
+    --color-primary: #0f172a;
+    --color-primary-light: #1e293b;
+    --color-accent: #3b82f6;
+    --color-success: #10b981;
+    --color-warning: #f59e0b;
+    --color-danger: #ef4444;
+    --color-gray-50: #f8fafc;
+    --color-gray-100: #f1f5f9;
+    --color-gray-200: #e2e8f0;
+    --color-gray-400: #cbd5e1;
+    --color-gray-500: #94a3b8;
+    --color-gray-600: #64748b;
+    --color-gray-700: #475569;
+    --color-gray-800: #334155;
+    --color-gray-900: #1e293b;
+    
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    
+    --radius-sm: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+    --radius-2xl: 1.25rem;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+/* ========================================
+   WRAPPER & LAYOUT
+   ======================================== */
+
+.subscriptions-wrapper {
+    padding: 2rem;
+    background:
+        radial-gradient(circle at 10% 15%, rgba(59, 130, 246, 0.10) 0%, transparent 35%),
+        radial-gradient(circle at 88% 10%, rgba(16, 185, 129, 0.08) 0%, transparent 30%),
+        linear-gradient(145deg, #f8fafc 0%, #eef2f7 100%);
+    min-height: 100vh;
+}
+
+
+/* ========================================
+   HEADER SECTION
+   ======================================== */
+
+.subscriptions-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 2rem;
+    margin-bottom: 2.5rem;
+}
+
+
+.header-content {
+    flex: 1;
+    min-width: 250px;
+}
+
+.header-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.header-title {
+    font-size: 2.25rem;
+    font-weight: 800;
+    margin: 0;
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+}
+
+.header-subtitle {
+    margin: 0;
+    color: var(--color-gray-600);
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+/* ========================================
+   CONTROLS BAR
+   ======================================== */
+
+.controls-bar {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    padding: 0.75rem;
+    border-radius: 1.25rem;
+    border: 1px solid var(--color-gray-200);
+    box-shadow: 0 16px 30px -24px rgba(15, 23, 42, 0.5);
+    flex-wrap: wrap;
+}
+
+
+.search-box {
+    position: relative;
+    flex: 1;
+    min-width: 250px;
+    display: flex;
+    align-items: center;
+}
+
+.search-icon {
+    position: absolute;
+    left: 12px;
+    width: 18px;
+    height: 18px;
+    color: var(--color-gray-500);
+    pointer-events: none;
+    flex-shrink: 0;
+}
+
+.search-input {
+    height: 42px;
+    padding-left: 40px;
+    padding-right: 12px;
+    width: 100%;
+    background: var(--color-gray-50);
+    border: 1px solid transparent;
+    border-radius: 0.875rem;
+    font-size: 0.9rem;
+    color: var(--color-gray-900);
+    font-weight: 500;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.search-input:hover {
+    background: var(--color-gray-100);
+}
+
+.search-input:focus {
+    background: white;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.filter-select {
+    height: 42px;
+    padding: 0 36px 0 16px;
+    background: var(--color-gray-100) url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3e%3cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3e%3c/svg%3e") no-repeat right 12px center;
+    background-size: 16px;
+    border: 1.5px solid var(--color-gray-200);
+    border-radius: 0.75rem;
+    font-size: 0.85rem;
+    color: var(--color-gray-700);
+    font-weight: 700;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    min-width: 170px;
+    letter-spacing: 0.01em;
+    text-transform: none;
+}
+
+.filter-select:hover {
+    background-color: white;
+    border-color: var(--color-gray-400);
+    color: var(--color-primary);
+}
+
+.filter-select:focus {
+    background-color: white;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.divider {
+    width: 1px;
+    height: 24px;
+    background: var(--color-gray-200);
+    margin: 0 0.25rem;
+}
+
+/* Buttons */
+
+.btn-primary,
+.btn-secondary {
+    padding: 0 1.25rem;
+    height: 42px;
+    border: none;
+    border-radius: 0.875rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: white;
+    box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.2);
+}
+
+.btn-primary:hover {
+    background: var(--color-primary-light);
+    box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.3);
+    transform: translateY(-2px);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--color-gray-600);
+    border: 1px solid transparent;
+}
+
+.btn-secondary:hover {
+    background: var(--color-gray-100);
+    color: var(--color-gray-900);
+}
+
+.btn-secondary:active {
+    background: var(--color-gray-200);
+}
+
+/* ========================================
+   STATS GRID
+   ======================================== */
+
+.stats-grid {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+    align-items: stretch;
+    width: 100%;
+}
+
+/* Scrollbar styles removed as grid is no longer scrolling */
+
+
+.stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 1.25rem;
+    border: 1px solid var(--color-gray-200);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 24px -22px rgba(15, 23, 42, 0.55);
+    flex: 1;
+    min-width: 0;
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s ease;
+}
+
+.stat-card:hover {
+    border-color: var(--color-gray-300);
+    box-shadow: 0 16px 28px -20px rgba(15, 23, 42, 0.4);
+}
+
+/* Shimmer removed for simpler hover */
+
+.stat-card.active {
+    border-color: currentColor;
+    box-shadow: 0 0 0 1px currentColor, 0 18px 28px -22px rgba(15, 23, 42, 0.45);
+}
+
+.stat-card-renewal {
+    background: linear-gradient(180deg, #ffffff 0%, #fff7ed 100%);
+    border-color: #fdba74;
+}
+
+.stat-card-renewal::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.12) 0%, rgba(249, 115, 22, 0.02) 45%, transparent 70%);
+    pointer-events: none;
+}
+
+.stat-card-renewal .stat-label {
+    color: #9a3412;
+    font-weight: 700;
+}
+
+.stat-card-renewal .stat-trend {
+    color: #c2410c;
+    font-weight: 500;
+}
+
+.stat-card-renewal.active {
+    border-color: #f97316;
+    box-shadow: 0 0 0 1px #f97316, 0 20px 30px -24px rgba(249, 115, 22, 0.55);
+}
+
+.stat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.stat-icon {
+    padding: 0.625rem;
+    border-radius: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.stat-card:hover .stat-icon {
+    transform: scale(1.1);
+}
+
+.stat-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.stat-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--color-gray-900);
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: var(--color-gray-600);
+    font-weight: 500;
+}
+
+.stat-trend {
+    font-size: 0.8rem;
+    color: var(--color-gray-500);
+    font-weight: 400;
+    margin-top: 0.25rem;
+}
+
+/* ========================================
+   TABLE SECTION
+   ======================================== */
+
+.table-wrapper {
+    background: rgba(255, 255, 255, 0.94);
+    border-radius: 1.5rem;
+    border: 1px solid var(--color-gray-200);
+    box-shadow: 0 24px 36px -30px rgba(15, 23, 42, 0.55);
+    overflow: hidden;
+}
+
+
+.table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.subscriptions-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+/* Table Header */
+
+.subscriptions-table thead {
+    background: linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%);
+    border-bottom: 2px solid var(--color-gray-200);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    backdrop-filter: blur(6px);
+}
+
+.subscriptions-table th {
+    padding: 1rem 1.5rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--color-gray-700);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.subscriptions-table th:last-child {
+    text-align: right;
+    padding-right: 1.5rem;
+}
+
+/* Column Widths */
+
+.col-id { width: 140px; }
+.col-customer { width: auto; min-width: 200px; }
+.col-plan { width: 150px; }
+.col-dates { width: 200px; }
+.col-status { width: 180px; text-align: center; }
+.col-actions { width: 120px; text-align: right; }
+
+/* Table Body */
+
+.subscriptions-table tbody tr {
+    border-bottom: 1px solid var(--color-gray-200);
+}
+
+.subscription-row {
+    cursor: pointer;
+    background: white;
+}
+
+.subscription-row:hover {
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.03) 0%, rgba(59, 130, 246, 0.01) 100%);
+    box-shadow: inset 3px 0 0 rgba(59, 130, 246, 0.55);
+}
+
+.subscription-row:active {
+    background: rgba(59, 130, 246, 0.05);
+}
+
+.subscriptions-table td {
+    padding: 1rem 1.5rem;
+    color: var(--color-gray-900);
+    vertical-align: middle;
+}
+
+/* Cell Content */
+
+.id-badge {
+    font-weight: 600;
+    color: var(--color-accent);
+    font-size: 0.9rem;
+    font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+}
+
+.customer-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.customer-name {
+    font-weight: 600;
+    color: var(--color-gray-900);
+}
+
+.customer-mobile {
+    font-size: 0.85rem;
+    color: var(--color-gray-600);
+}
+
+.plan-badge {
+    display: inline-block;
+    background: var(--color-gray-100);
+    color: var(--color-gray-700);
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.date-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.date-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.date-label {
+    font-size: 0.8rem;
+    color: var(--color-gray-600);
+    text-transform: uppercase;
+    font-weight: 500;
+}
+
+.date-value {
+    font-weight: 600;
+    color: var(--color-gray-900);
+}
+
+.days-remaining {
+    font-size: 0.8rem;
+    color: var(--color-warning);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* Status Badges */
+
+.status-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 0.375rem 1rem;
+    border-radius: 99px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border: 1px solid;
+    letter-spacing: 0.02em;
+}
+
+.status-active {
+    background: #ecfdf5;
+    color: var(--color-success);
+    border-color: #a7f3d0;
+}
+
+.status-active:hover {
+    background: #d1fae5;
+}
+
+.status-expired {
+    background: #fef2f2;
+    color: var(--color-danger);
+    border-color: #fecaca;
+}
+
+.status-expired:hover {
+    background: #fee2e2;
+}
+
+.status-paused {
+    background: #fffbeb;
+    color: #b45309;
+    border-color: #fcd34d;
+}
+
+.status-paused:hover {
+    background: #fef3c7;
+}
+
+.status-terminated {
+    background: var(--color-gray-100);
+    color: var(--color-gray-600);
+    border-color: var(--color-gray-300);
+}
+
+.payment-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--color-danger);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Actions */
+
+.actions-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+.btn-renew {
+    padding: 0.375rem 0.875rem;
+    border: none;
+    border-radius: 0.5rem;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    white-space: nowrap;
+}
+
+.btn-renew:hover {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+}
+
+.btn-renew:active {
+    transform: translateY(0);
+}
+
+.action-indicator {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-gray-500);
+}
+
+.subscription-row:hover .action-indicator {
+    background: var(--color-gray-100);
+    color: var(--color-accent);
+    transform: translateX(2px);
+}
+
+/* ========================================
+   EMPTY STATE
+   ======================================== */
+
+.empty-state {
+    padding: 4rem 2rem;
+    text-align: center;
+    color: var(--color-gray-500);
+}
+
+.empty-icon {
+    margin-bottom: 1rem;
+    background: var(--color-gray-100);
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    margin-right: auto;
+    color: var(--color-gray-400);
+}
+
+.empty-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--color-gray-900);
+    margin: 1rem 0 0.5rem;
+}
+
+.empty-subtitle {
+    font-size: 0.9rem;
+    color: var(--color-gray-600);
+    margin: 0;
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+@media (max-width: 1024px) {
+    .subscriptions-header {
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .controls-bar {
+        width: 100%;
+    }
+
+    .search-box {
+        min-width: 100%;
+    }
+
+    .stats-grid {
+        gap: 0.75rem;
+    }
+    
+    .stat-card {
+        padding: 1rem;
+    }
+    
+    .stat-value {
+        font-size: 1.5rem;
+    }
+    
+    .stat-label {
+        font-size: 0.75rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .subscriptions-wrapper {
+        padding: 1.5rem;
+    }
+
+    .header-title {
+        font-size: 1.75rem;
+    }
+
+    .controls-bar {
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 0.5rem;
+    }
+
+    .search-box,
+    .filter-select,
+    .btn-primary,
+    .btn-secondary {
+        min-width: 100%;
+    }
+
+    .divider {
+        width: 100%;
+        height: 1px;
+    }
+
+    .stat-card {
+        padding: 0.75rem;
+    }
+    
+    .stat-value {
+        font-size: 1.25rem;
+    }
+    
+    .stat-icon {
+        padding: 0.5rem;
+    }
+    
+    .stat-trend {
+        display: none;
+    }
+
+    .col-dates { width: 180px; }
+    .col-status { width: 140px; }
+    .col-actions { width: 90px; }
+
+    .subscriptions-table th {
+        padding: 0.75rem 1rem;
+        font-size: 0.75rem;
+    }
+
+    .subscriptions-table td {
+        padding: 0.75rem 1rem;
+    }
+
+    .customer-mobile {
+        display: none;
+    }
+
+    .date-info {
+        gap: 0.25rem;
+    }
+
+    .date-label {
+        display: none;
+    }
+
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+    }
+
+    .btn-renew {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.65rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .subscriptions-wrapper {
+        padding: 1rem;
+    }
+
+    .header-title {
+        font-size: 1.5rem;
+    }
+
+    .stat-value {
+        font-size: 1.75rem;
+    }
+
+    .stat-card {
+        flex: 0 0 240px;
+    }
+
+    .table-wrapper {
+        border-radius: 0.75rem;
+    }
+
+    .col-id { width: 100px; }
+    .col-customer { min-width: 150px; }
+    .col-plan { width: 100px; }
+
+    .subscriptions-table th {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.7rem;
+    }
+
+    .subscriptions-table td {
+        padding: 0.5rem 0.75rem;
+    }
+
+    .id-badge {
+        font-size: 0.8rem;
+    }
+
+    .customer-name {
+        font-size: 0.85rem;
+    }
+
+    .plan-badge {
+        font-size: 0.75rem;
+    }
+
+    .action-indicator {
+        width: 24px;
+        height: 24px;
+    }
+}
+
+/* ========================================
+   SCROLLBAR STYLING
+   ======================================== */
+
+.table-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+    background: var(--color-gray-100);
+}
+
+.table-container::-webkit-scrollbar-thumb {
+    background: var(--color-gray-300);
+    border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+    background: var(--color-gray-400);
+}
+
+/* ========================================
+   ACCESSIBILITY
+   ======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Focus States */
+
+.btn-primary:focus,
+.btn-secondary:focus,
+.filter-select:focus,
+.search-input:focus {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+}
+
+/* High Contrast Mode */
+
+@media (prefers-contrast: more) {
+    .stat-card {
+        border-width: 3px;
+    }
+
+    .status-badge {
+        border-width: 2px;
+    }
+
+    .subscriptions-table th {
+        font-weight: 700;
+    }
+}

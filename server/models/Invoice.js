@@ -15,7 +15,7 @@ const invoiceSchema = new mongoose.Schema({
     }],
     amount: { type: Number, required: true },
     status: { type: String, enum: ['Paid', 'Unpaid', 'Overdue'], default: 'Unpaid' },
-    paymentMethod: { type: String, enum: ['Cash', 'GPay', 'Account Transfer', 'Credit Transaction', 'Money Order', 'Account Transfer - Cash', 'Account Transfer - Cheque', 'Account Transfer - DD', 'Account Transfer - NEFT'], default: null },
+    paymentMethod: { type: String, enum: ['Cash', 'GPay', 'Account Transfer', 'Credit Transaction', 'Money Order', 'Account Transfer - Cash', 'Account Transfer - Cheque', 'Account Transfer - DD', 'Account Transfer - NEFT', 'Account Transfer - GPay - N Palaniappan'], default: null },
     dateIssued: { type: Date, default: Date.now },
     paymentDate: Date,
     referenceNo: { type: String, default: '' },
