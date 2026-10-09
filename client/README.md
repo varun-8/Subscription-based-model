@@ -1,73 +1,56 @@
-# React + TypeScript + Vite
+# 🎨 Aachi Vanthachu — Frontend Client
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> Modern React 19 + TypeScript + Vite Single Page Application for **Aachi Vanthachu Magazine ERP**.
 
-Currently, two official plugins are available:
+For complete system documentation, architecture diagrams, backend setup, and desktop packaging, please refer to the [Main Repository README](../README.md).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## React Compiler
+## ⚡ Tech Stack & Libraries
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Framework**: [React 19.2](https://react.dev/)
+- **Language**: [TypeScript 5.9](https://www.typescriptlang.org/)
+- **Bundler & Tooling**: [Vite 7.2](https://vitejs.dev/)
+- **Routing**: [React Router v7](https://reactrouter.com/)
+- **Analytics Charts**: [Chart.js](https://www.chartjs.org/) & `react-chartjs-2`
+- **PDF Generation**: [jsPDF](https://github.com/parallax/jsPDF) + `jspdf-autotable`
+- **Spreadsheet Processing**: [XLSX (SheetJS)](https://sheetjs.com/)
+- **Icons**: `react-icons` (Material Design Icons)
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 📂 Key Components (`src/components/admin/`)
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+The client provides 42 modular components handling enterprise operations:
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+| Component | Responsibility |
+|:---|:---|
+| [`AnalyticsView.tsx`](./src/components/admin/AnalyticsView.tsx) | BI dashboard, revenue trends, plan distributions, and renewal radars |
+| [`QuickOrderView.tsx`](./src/components/admin/QuickOrderView.tsx) | Fast POS ordering workflow with real-time price & date computation |
+| [`CustomersView.tsx`](./src/components/admin/CustomersView.tsx) | Filterable customer database across 38 Tamil Nadu districts & states |
+| [`SubscriptionsView.tsx`](./src/components/admin/SubscriptionsView.tsx) | Multi-year plan lifecycle tracking, renewals, and date management |
+| [`InvoicesView.tsx`](./src/components/admin/InvoicesView.tsx) | Professional invoice generation, payment status tracking, and PDF printing |
+| [`AdvertisementsView.tsx`](./src/components/admin/AdvertisementsView.tsx) | Commercial ad placement, issue tracking, and client billing |
+| [`InventoryView.tsx`](./src/components/admin/InventoryView.tsx) | Magazine print-run stock tracking, purchase ledgers, and courier entries |
+| [`ReportsView.tsx`](./src/components/admin/ReportsView.tsx) | Print-ready postal dispatch sheets and Excel (`.xlsx`) data exports |
+| [`DatabaseView.tsx`](./src/components/admin/DatabaseView.tsx) | Background database backup monitoring, restore, and reset panel |
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+---
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 🛠 Available Scripts
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+In the `client` directory, you can run:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+# Start Vite development server with HMR on http://localhost:5173
+npm run dev
+
+# Compile TypeScript and bundle production assets into dist/
+npm run build
+
+# Run ESLint validation
+npm run lint
+
+# Preview the production build locally
+npm run preview
 ```
